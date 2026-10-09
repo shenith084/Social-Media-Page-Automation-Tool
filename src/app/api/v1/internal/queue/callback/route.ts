@@ -41,11 +41,11 @@ export async function POST(req: NextRequest) {
       });
 
     } else {
-      // Mark Queue item as failed
+      // Mark Queue item as blocked
       await db
         .update(queueItems)
         .set({ 
-          status: "failed",
+          status: "blocked",
           blockedReason: errorMessage || "Unknown publishing error"
         })
         .where(eq(queueItems.id, queueItemId));

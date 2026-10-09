@@ -77,10 +77,10 @@ export async function approveAndQueueAction(generationItemId: string) {
     const queueData = await db.select({ maxOrder: sql<number>`max(${queueItems.queueOrder})` }).from(queueItems).where(eq(queueItems.pageId, pageId));
     const nextOrder = (queueData[0]?.maxOrder || 0) + 1;
     
-    // Assign a time (e.g. tomorrow at 9 AM + nextOrder hours)
+    // Assign a time (Schedule for right NOW for testing purposes!)
     const scheduledTime = new Date();
-    scheduledTime.setDate(scheduledTime.getDate() + 1); // Tomorrow
-    scheduledTime.setHours(9 + nextOrder, 0, 0, 0);
+    // scheduledTime.setDate(scheduledTime.getDate() + 1); // Tomorrow
+    // scheduledTime.setHours(9 + nextOrder, 0, 0, 0);
 
     await db.insert(queueItems).values({
       pageId: pageId,

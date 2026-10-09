@@ -1,8 +1,7 @@
 "use server";
 
-import { GeminiTextProvider } from "@/lib/adapters/gemini-text";
 import { db } from "@/lib/db";
-import { generationRequests, generationItems, pages } from "@/lib/db/schema";
+import { generationRequests, pages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -20,13 +19,7 @@ export async function generateContentAction(
     });
 
     if (!activePage) {
-      const inserted = await db.insert(pages).values({
-        name: "My Pixzora Page",
-        platform: "facebook",
-        platformPageId: "pending",
-        isActive: true,
-      }).returning();
-      activePage = inserted[0];
+      throw new Error("No active page found. Please seed the database.");
     }
 
     const [requestRecord] = await db.insert(generationRequests).values({
@@ -40,33 +33,27 @@ export async function generateContentAction(
       status: "processing",
     }).returning();
 
-    // 3. Trigger n8n Workflow (Workflow 02) exactly as the Master Prompt mandates
-    // Note: We use webhook-test for dev so we don't have to manually activate the workflow in n8n first
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || "http://localhost:5678/webhook-test/generate";
+    // Trigger n8n Workflow exactly as the Master Prompt mandates
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || "http://localhost:5678/webhook/generate";
     
-    // We await this request so Next.js doesn't kill the thread before the network request sends.
-    // Since n8n webhooks respond immediately by default, this won't block the UI for long.
-    try {
-      await fetch(n8nWebhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          requestId: requestRecord.id,
-          topic,
-          instructions,
-          postCount,
-          tone,
-          audience,
-          referenceText,
-        }),
-      });
-      console.log("Successfully pinged n8n webhook");
-    } catch (err) {
-      console.error("Failed to trigger n8n webhook:", err);
-    }
+    // We don't await this so it processes asynchronously in n8n
+    fetch(n8nWebhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requestId: requestRecord.id,
+        topic,
+        instructions,
+        postCount,
+        tone,
+        audience,
+        referenceText,
+      }),
+    }).catch(err => console.error("Failed to trigger n8n webhook:", err));
 
+    revalidatePath("/drafts");
     return { success: true };
 
   } catch (error: any) {

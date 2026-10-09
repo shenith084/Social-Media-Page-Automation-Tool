@@ -1,10 +1,16 @@
-import { db } from "./src/lib/db";
-import { generationItems } from "./src/lib/db/schema";
+import { db } from "./src/lib/db/index.js";
+import { pages, users, queueItems } from "./src/lib/db/schema.js";
 
-async function run() {
-  const items = await db.select().from(generationItems);
-  console.log("Total items in DB:", items.length);
-  console.log(items.map(i => ({ id: i.id, headline: i.headline, status: i.status })));
+async function check() {
+  const allPages = await db.select().from(pages);
+  console.log("Pages:", allPages);
+  
+  const allUsers = await db.select().from(users);
+  console.log("Users:", allUsers);
+  
+  const allQueue = await db.select().from(queueItems);
+  console.log("Queue:", allQueue);
+  
   process.exit(0);
 }
-run().catch(console.error);
+check();
