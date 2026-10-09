@@ -3,35 +3,11 @@ import { ExternalLink, Clock } from "lucide-react";
 
 export const metadata: Metadata = { title: "Published History" };
 
-const PUBLISHED = [
-  {
-    id: "pub-1",
-    title: "Morning Motivation",
-    caption: "Start your Monday with intention. Here are three powerful mindset shifts to carry you through the week…",
-    publishedAt: "2026-10-08T08:00:23Z",
-    platformPostId: "fb_987654321",
-    postLink: "https://www.facebook.com/987654321",
-    imageUrl: null,
-  },
-  {
-    id: "pub-2",
-    title: "Weekend Round-Up",
-    caption: "What a weekend! Here's a look back at the highlights and what's coming next week…",
-    publishedAt: "2026-10-07T13:00:44Z",
-    platformPostId: "fb_876543210",
-    postLink: "https://www.facebook.com/876543210",
-    imageUrl: null,
-  },
-  {
-    id: "pub-3",
-    title: "Product Feature Spotlight",
-    caption: "Did you know? Our latest feature saves teams an average of 3 hours per week. Here's how it works…",
-    publishedAt: "2026-10-07T09:01:02Z",
-    platformPostId: "fb_765432109",
-    postLink: "https://www.facebook.com/765432109",
-    imageUrl: null,
-  },
-];
+import { db } from "@/lib/db";
+import { publishedPosts, queueItems, contentVersions } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
+
+export const dynamic = "force-dynamic";
 
 function formatPublished(iso: string) {
   return new Date(iso).toLocaleString("en-GB", {
@@ -41,7 +17,27 @@ function formatPublished(iso: string) {
   });
 }
 
-export default function HistoryPage() {
+export default async function HistoryPage() {
+  const data = await db
+    .select({
+      published: publishedPosts,
+      contentVersion: contentVersions,
+    })
+    .from(publishedPosts)
+    .leftJoin(queueItems, eq(publishedPosts.queueItemId, queueItems.id))
+    .leftJoin(contentVersions, eq(queueItems.contentVersionId, contentVersions.id))
+    .orderBy(desc(publishedPosts.actualPublishedAt));
+
+  const PUBLISHED = data.map((d) => ({
+    id: d.published.id,
+    title: d.contentVersion?.headline || "Untitled Post",
+    caption: d.contentVersion?.caption || "No caption",
+    publishedAt: d.published.actualPublishedAt?.toISOString() || new Date().toISOString(),
+    platformPostId: d.published.platformPostId,
+    postLink: d.published.postLink,
+    imageUrl: null,
+  }));
+
   return (
     <div style={{ padding: "32px", maxWidth: "1100px" }} className="animate-fade-in">
       <div style={{ marginBottom: "24px" }}>

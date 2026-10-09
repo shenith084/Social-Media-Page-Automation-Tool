@@ -11,48 +11,11 @@ import {
 
 export const metadata: Metadata = { title: "Publishing Queue" };
 
-const QUEUE_ITEMS = [
-  {
-    id: "qi-1",
-    order: 1,
-    title: "5 Productivity Tips for Remote Workers",
-    caption: "Working from home doesn't have to mean working less effectively…",
-    scheduledAt: "Today, 19:00 BST",
-    status: "queued",
-    approvedBy: "Admin",
-    approvedAt: "2026-10-08T10:00:00Z",
-  },
-  {
-    id: "qi-2",
-    order: 2,
-    title: "Morning Routine Secrets",
-    caption: "The most successful people share one habit: a powerful morning routine…",
-    scheduledAt: "Tomorrow, 09:00 BST",
-    status: "queued",
-    approvedBy: "Admin",
-    approvedAt: "2026-10-08T10:05:00Z",
-  },
-  {
-    id: "qi-3",
-    order: 3,
-    title: "Weekly Motivation",
-    caption: "This week's reminder: progress, not perfection. Every small step forward counts…",
-    scheduledAt: "Tomorrow, 13:00 BST",
-    status: "queued",
-    approvedBy: "Editor",
-    approvedAt: "2026-10-08T11:00:00Z",
-  },
-  {
-    id: "qi-4",
-    order: 4,
-    title: "Campaign Hero Shot",
-    caption: "Summer is here and we're celebrating with our biggest offer yet…",
-    scheduledAt: "08 Oct, 19:00 BST",
-    status: "needs_review",
-    approvedBy: "Admin",
-    approvedAt: "2026-10-07T09:00:00Z",
-  },
-];
+import { db } from "@/lib/db";
+import { queueItems, contentVersions, users } from "@/lib/db/schema";
+import { eq, asc, inArray } from "drizzle-orm";
+
+export const dynamic = "force-dynamic";
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   queued: { label: "Queued", cls: "badge-queued" },
@@ -65,7 +28,29 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "Cancelled", cls: "badge-cancelled" },
 };
 
-export default function QueuePage() {
+export default async function QueuePage() {
+  const data = await db
+    .select({
+      queueItem: queueItems,
+      contentVersion: contentVersions,
+      user: users,
+    })
+    .from(queueItems)
+    .leftJoin(contentVersions, eq(queueItems.contentVersionId, contentVersions.id))
+    .leftJoin(users, eq(queueItems.approvedById, users.id))
+    .where(inArray(queueItems.status, ["queued", "publishing", "needs_review", "blocked", "retry_pending"]))
+    .orderBy(asc(queueItems.queueOrder));
+
+  const QUEUE_ITEMS = data.map((d) => ({
+    id: d.queueItem.id,
+    order: d.queueItem.queueOrder,
+    title: d.contentVersion?.headline || "Untitled",
+    caption: d.contentVersion?.caption || "",
+    scheduledAt: d.queueItem.scheduledAt ? new Date(d.queueItem.scheduledAt).toLocaleString("en-GB", { timeZone: "Europe/London", dateStyle: "medium", timeStyle: "short" }) : "Unscheduled",
+    status: d.queueItem.status,
+    approvedBy: d.user?.name || d.user?.email || "System",
+  }));
+
   return (
     <div style={{ padding: "32px", maxWidth: "1100px" }} className="animate-fade-in">
       {/* Header */}
