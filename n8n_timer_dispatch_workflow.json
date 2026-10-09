@@ -1,0 +1,163 @@
+{
+  "name": "Timer Dispatch & Publishing Workflow (pxz-publish)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "name": "Every Minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [0, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/v1/internal/queue/claim",
+        "options": {}
+      },
+      "name": "Claim Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [200, 300],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.job != null}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Is Job Due?",
+      "type": "n8n-nodes-base.if",
+      "position": [400, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:3000/api/v1/internal/render-image?headline={{encodeURIComponent($node[\"Claim Job\"].json.job.headline)}}",
+        "responseFormat": "file",
+        "options": {}
+      },
+      "name": "Render Final Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [600, 200],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{$env[\"FB_PAGE_ID\"]}}/photos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env[\"FB_ACCESS_TOKEN\"]}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{$node[\"Claim Job\"].json.job.caption}}"
+            }
+          ]
+        },
+        "sendBinaryData": true,
+        "binaryPropertyName": "source:data",
+        "options": {}
+      },
+      "name": "Post to Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [800, 200],
+      "typeVersion": 3,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/v1/internal/queue/callback",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({\n  queueItemId: $node[\"Claim Job\"].json.job.id,\n  success: $json.error ? false : true,\n  platformPostId: $json.error ? null : $json.id,\n  errorMessage: $json.error ? $json.error.message : null\n})}}",
+        "options": {}
+      },
+      "name": "Update DB Outcome",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1000, 200],
+      "typeVersion": 3
+    }
+  ],
+  "connections": {
+    "Every Minute": {
+      "main": [
+        [
+          {
+            "node": "Claim Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim Job": {
+      "main": [
+        [
+          {
+            "node": "Is Job Due?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Job Due?": {
+      "main": [
+        [
+          {
+            "node": "Render Final Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render Final Image": {
+      "main": [
+        [
+          {
+            "node": "Post to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Update DB Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true
+}

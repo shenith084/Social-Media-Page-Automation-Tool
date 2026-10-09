@@ -1,0 +1,89 @@
+{
+  "name": "Content Generation Workflow (pxz-generate-content)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "generate",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{$env[\"GEMINI_API_KEY\"]}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({\n  system_instruction: {\n    parts: [{ text: \"You are a social media content specialist writing in British English. Generate structured post content for Facebook Pages. Output ONLY valid JSON matching the schema. Do not include markdown or prose outside the JSON.\" }]\n  },\n  contents: [\n    {\n      parts: [{ text: `Generate ${$json.body.postCount} posts about: ${$json.body.topic}. Tone: ${$json.body.tone}. Respond with JSON containing a 'posts' array with 'caption', 'headline', 'subheading', 'imagePrompt', 'hashtags' arrays.` }]\n    }\n  ],\n  generationConfig: {\n    responseMimeType: \"application/json\"\n  }\n})}}",
+        "options": {}
+      },
+      "name": "Google Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        450,
+        300
+      ],
+      "typeVersion": 3,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/v1/internal/generation-callback",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({\n  requestId: $(\"Webhook\").first().json.body.requestId,\n  status: $json.error ? 'failed' : 'success',\n  posts: $json.candidates ? JSON.parse($json.candidates[0].content.parts[0].text).posts : []\n})}}",
+        "options": {}
+      },
+      "name": "Backend Callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        650,
+        300
+      ],
+      "typeVersion": 3
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Google Gemini API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini API": {
+      "main": [
+        [
+          {
+            "node": "Backend Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true
+}
