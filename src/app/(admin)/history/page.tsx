@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+﻿import { Metadata } from "next";
 import { ExternalLink, Clock } from "lucide-react";
 
 export const metadata: Metadata = { title: "Published History" };
@@ -88,7 +88,7 @@ export default async function HistoryPage() {
                     {post.title}
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
-                    {post.caption.length > 90 ? post.caption.slice(0, 87) + "…" : post.caption}
+                    {post.caption.length > 90 ? post.caption.slice(0, 87) + "â€¦" : post.caption}
                   </div>
                 </td>
                 <td style={{ padding: "16px" }}>
@@ -104,7 +104,7 @@ export default async function HistoryPage() {
                 </td>
                 <td style={{ padding: "16px" }}>
                   <a
-                    href={post.postLink}
+                    href={post.postLink || "#"}
                     id={`link-${post.id}`}
                     target="_blank"
                     rel="noopener noreferrer"

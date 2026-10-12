@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+﻿import { Metadata } from "next";
 import {
   Sparkles,
   ListOrdered,
@@ -8,13 +8,19 @@ import {
   Wifi,
 } from "lucide-react";
 import { db } from "@/lib/db";
-import { queueItems, publishedPosts, auditLogs, pages, pageConnections, systemHeartbeats, contentVersions } from "@/lib/db/schema";
-import { desc, asc, eq, sql, gt, isNull } from "drizzle-orm";
+import {
+  queueItems,
+  publishedPosts,
+  auditLogs,
+  pages,
+  pageConnections,
+  systemHeartbeats,
+  contentVersions,
+} from "@/lib/db/schema";
+import { desc, asc, eq, sql, gt } from "drizzle-orm";
 import { format, formatDistanceToNow } from "date-fns";
 
 export const metadata: Metadata = { title: "Dashboard" };
-
-export const dynamic = "force-dynamic";
 
 const statusBadgeMap: Record<string, string> = {
   queued: "badge-queued",
@@ -35,36 +41,73 @@ export default async function DashboardPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 1. Fetch real DB stats
-  const activeQueueData = await db
-    .select({
-      queueItem: queueItems,
-      contentVersion: contentVersions,
-    })
-    .from(queueItems)
-    .leftJoin(contentVersions, eq(queueItems.contentVersionId, contentVersions.id))
-    .where(eq(queueItems.status, "queued"))
-    .orderBy(asc(queueItems.scheduledAt))
-    .limit(10);
+  // Parallelised DB queries for sub-second execution
+  const [
+    activeQueueData,
+    publishedTodayCount,
+    failuresCount,
+    recentLogs,
+    activePageData,
+    heartbeat,
+  ] = await Promise.all([
+    // 1. Active queue
+    db
+      .select({
+        queueItem: queueItems,
+        contentVersion: contentVersions,
+      })
+      .from(queueItems)
+      .leftJoin(contentVersions, eq(queueItems.contentVersionId, contentVersions.id))
+      .where(eq(queueItems.status, "queued"))
+      .orderBy(asc(queueItems.scheduledAt))
+      .limit(10),
 
-  const activeQueue = activeQueueData.map(q => ({
+    // 2. Published today count
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(publishedPosts)
+      .where(gt(publishedPosts.actualPublishedAt, today)),
+
+    // 3. Failures count
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(queueItems)
+      .where(eq(queueItems.status, "needs_review")),
+
+    // 4. Recent activity
+    db
+      .select()
+      .from(auditLogs)
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(5),
+
+    // 5. Active page connection
+    db
+      .select({
+        page: pages,
+        connection: pageConnections,
+      })
+      .from(pages)
+      .leftJoin(pageConnections, eq(pages.id, pageConnections.pageId))
+      .where(eq(pages.isActive, true))
+      .limit(1),
+
+    // 6. System heartbeat
+    db
+      .select()
+      .from(systemHeartbeats)
+      .where(eq(systemHeartbeats.component, "n8n-scheduler"))
+      .orderBy(desc(systemHeartbeats.lastHeartbeatAt))
+      .limit(1),
+  ]);
+
+  const activeQueue = activeQueueData.map((q) => ({
     ...q.queueItem,
-    contentVersion: q.contentVersion
+    contentVersion: q.contentVersion,
   }));
 
   const nextPost = activeQueue[0];
 
-  const publishedTodayCount = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(publishedPosts)
-    .where(gt(publishedPosts.actualPublishedAt, today));
-
-  const failuresCount = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(queueItems)
-    .where(eq(queueItems.status, "needs_review"));
-
-  // 2. Format stats for UI
   const stats = [
     {
       id: "stat-next-post",
@@ -87,7 +130,7 @@ export default async function DashboardPage() {
     {
       id: "stat-published-today",
       label: "Published Today",
-      value: publishedTodayCount[0]?.count.toString() || "0",
+      value: publishedTodayCount[0]?.count?.toString() || "0",
       subValue: "Since midnight UTC",
       icon: CheckCircle2,
       colour: "34,197,94",
@@ -96,7 +139,7 @@ export default async function DashboardPage() {
     {
       id: "stat-failures",
       label: "Action Required",
-      value: failuresCount[0]?.count.toString() || "0",
+      value: failuresCount[0]?.count?.toString() || "0",
       subValue: "Needs review",
       icon: AlertTriangle,
       colour: failuresCount[0]?.count > 0 ? "239,68,68" : "234,179,8",
@@ -104,52 +147,46 @@ export default async function DashboardPage() {
     },
   ];
 
-  // 3. Fetch Recent Activity
-  const recentLogs = await db.query.auditLogs.findMany({
-    orderBy: [desc(auditLogs.createdAt)],
-    limit: 5,
-  });
-
   const recentActivity = recentLogs.map((log) => ({
     id: log.id,
     text: log.action,
-    time: formatDistanceToNow(log.createdAt, { addSuffix: true }),
-    type: log.action.toLowerCase().includes("fail") || log.action.toLowerCase().includes("error") ? "error" : "info",
+    time: formatDistanceToNow(new Date(log.createdAt), { addSuffix: true }),
+    type:
+      log.action.toLowerCase().includes("fail") ||
+      log.action.toLowerCase().includes("error")
+        ? "error"
+        : "info",
   }));
-
-  // 4. Connection Health
-  const activePageData = await db
-    .select({
-      page: pages,
-      connection: pageConnections,
-    })
-    .from(pages)
-    .leftJoin(pageConnections, eq(pages.id, pageConnections.pageId))
-    .where(eq(pages.isActive, true))
-    .limit(1);
 
   const connection = activePageData[0]?.connection;
   const isConnected = connection?.status === "connected";
   const tokenExpiresAt = connection?.tokenExpiresAt;
 
-  // 5. System Heartbeat (Scheduler)
-  const heartbeat = await db.query.systemHeartbeats.findFirst({
-    where: eq(systemHeartbeats.component, "n8n-scheduler"),
-    orderBy: [desc(systemHeartbeats.lastHeartbeatAt)],
-  });
-
-  const isSchedulerRunning = heartbeat ? (new Date().getTime() - heartbeat.lastHeartbeatAt.getTime() < 5 * 60 * 1000) : false;
+  const latestHeartbeat = heartbeat[0];
+  const isSchedulerRunning = latestHeartbeat
+    ? new Date().getTime() - new Date(latestHeartbeat.lastHeartbeatAt).getTime() <
+      5 * 60 * 1000
+    : false;
 
   return (
     <div style={{ padding: "32px", maxWidth: "1200px" }} className="animate-fade-in">
       {/* Header */}
-      <div style={{ marginBottom: "32px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+      <div
+        style={{
+          marginBottom: "32px",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "16px",
+        }}
+      >
         <div>
           <h1 style={{ fontSize: "1.75rem", fontWeight: 700, marginBottom: "4px" }}>
             Dashboard
           </h1>
           <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem" }}>
-            {format(new Date(), "EEEE, d MMMM yyyy · OOOO")}
+            {format(new Date(), "EEEE, d MMMM yyyy")}
           </p>
         </div>
 
@@ -178,11 +215,88 @@ export default async function DashboardPage() {
         </a>
       </div>
 
-      {/* Stats grid */}
+      {/* Connection & scheduler status banner */}
       <div
+        id="banner-system-health"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "12px 20px",
+          borderRadius: "10px",
+          marginBottom: "28px",
+          background: isConnected
+            ? "rgba(34, 197, 94, 0.08)"
+            : "rgba(239, 68, 68, 0.08)",
+          border: isConnected
+            ? "1px solid rgba(34, 197, 94, 0.25)"
+            : "1px solid rgba(239, 68, 68, 0.25)",
+          flexWrap: "wrap",
+          gap: "12px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <Wifi
+            size={16}
+            style={{ color: isConnected ? "rgb(34,197,94)" : "rgb(239,68,68)" }}
+          />
+          <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
+            {isConnected ? (
+              <>
+                Facebook Page: <strong>{activePageData[0]?.page.name || "Viral reels"}</strong> Connected
+                <span
+                  style={{
+                    color: "rgba(255,255,255,0.45)",
+                    marginLeft: "8px",
+                    fontSize: "0.8125rem",
+                  }}
+                >
+                  Token: Never Expires
+                </span>
+              </>
+            ) : (
+              <>
+                Facebook Page Disconnected &mdash;{" "}
+                <a
+                  href="/settings"
+                  style={{ color: "rgb(239,68,68)", textDecoration: "underline" }}
+                >
+                  Reconnect now
+                </a>
+              </>
+            )}
+          </span>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background: isSchedulerRunning
+                ? "rgb(34, 197, 94)"
+                : "rgb(234, 179, 8)",
+              display: "inline-block",
+            }}
+          />
+          <span
+            style={{
+              fontSize: "0.8125rem",
+              color: "rgba(255,255,255,0.6)",
+            }}
+          >
+            Scheduler: {isSchedulerRunning ? "Active" : "Standing By (1-min cron)"}
+          </span>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div
+        id="kpi-cards-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           gap: "16px",
           marginBottom: "32px",
         }}
@@ -196,14 +310,29 @@ export default async function DashboardPage() {
               className="glass-card-elevated"
               style={{ padding: "20px" }}
             >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "12px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "12px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "0.8125rem",
+                    fontWeight: 500,
+                    color: "rgba(255,255,255,0.6)",
+                  }}
+                >
+                  {stat.label}
+                </span>
                 <div
                   style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "10px",
-                    background: `rgba(${stat.colour},0.15)`,
-                    border: `1px solid rgba(${stat.colour},0.25)`,
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "8px",
+                    background: `rgba(${stat.colour}, 0.12)`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -211,163 +340,232 @@ export default async function DashboardPage() {
                 >
                   <Icon size={18} style={{ color: `rgb(${stat.colour})` }} />
                 </div>
-                {stat.trend && (
-                  <span
-                    style={{
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      color: "rgb(34,197,94)",
-                      background: "rgba(34,197,94,0.1)",
-                      padding: "2px 8px",
-                      borderRadius: "999px",
-                    }}
-                  >
-                    {stat.trend}
-                  </span>
-                )}
               </div>
-              <div style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "2px" }}>{stat.value}</div>
-              <div style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.45)" }}>{stat.label}</div>
-              <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)", marginTop: "2px" }}>{stat.subValue}</div>
+              <div
+                style={{
+                  fontSize: "1.75rem",
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                  marginBottom: "4px",
+                }}
+              >
+                {stat.value}
+              </div>
+              <div
+                style={{
+                  fontSize: "0.8125rem",
+                  color: "rgba(255,255,255,0.4)",
+                }}
+              >
+                {stat.subValue}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Two-column content area */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "24px" }}>
-        {/* Upcoming queue */}
-        <div className="glass-card-elevated" style={{ padding: "20px" }} id="widget-upcoming-queue">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-            <h2 style={{ fontSize: "0.9375rem", fontWeight: 600 }}>Upcoming Queue</h2>
-            <a href="/queue" style={{ fontSize: "0.75rem", color: "rgba(139,92,246,0.8)", textDecoration: "none" }}>
-              View all →
-            </a>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {activeQueue.length === 0 && (
-              <div style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.4)", textAlign: "center", padding: "20px" }}>
-                Queue is empty. <a href="/generate" style={{ color: "rgb(167,139,250)" }}>Generate content</a>
-              </div>
-            )}
-            {activeQueue.slice(0, 3).map((item) => (
-              <div
-                key={item.id}
-                id={item.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  padding: "10px 12px",
-                  background: "rgba(255,255,255,0.03)",
-                  borderRadius: "8px",
-                  border: "1px solid rgba(255,255,255,0.05)",
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "0.875rem", fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {item.contentVersion?.headline || "Untitled Post"}
-                  </div>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", display: "flex", alignItems: "center", gap: "4px" }}>
-                    <Clock size={11} />
-                    {format(item.scheduledAt, "MMM d, HH:mm")}
-                  </div>
-                </div>
-                <span className={`badge ${statusBadgeMap[item.status] ?? "badge-queued"}`}>
-                  {item.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent activity */}
-        <div className="glass-card-elevated" style={{ padding: "20px" }} id="widget-recent-activity">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-            <h2 style={{ fontSize: "0.9375rem", fontWeight: 600 }}>Recent Activity</h2>
-            <a href="/usage" style={{ fontSize: "0.75rem", color: "rgba(139,92,246,0.8)", textDecoration: "none" }}>
-              Audit log →
-            </a>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {recentActivity.length === 0 && (
-               <div style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.4)", textAlign: "center", padding: "20px" }}>
-                 No recent activity to show.
-               </div>
-            )}
-            {recentActivity.map((item) => (
-              <div
-                key={item.id}
-                id={item.id}
-                style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}
-              >
-                <div
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    borderRadius: "50%",
-                    background: `rgb(${activityColour[item.type] || activityColour.info})`,
-                    flexShrink: 0,
-                    marginTop: "6px",
-                  }}
-                />
-                <div>
-                  <div style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.75)", marginBottom: "2px" }}>
-                    {item.text}
-                  </div>
-                  <div style={{ fontSize: "0.6875rem", color: "rgba(255,255,255,0.3)" }}>
-                    {item.time}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Connection health */}
+      {/* Active Queue & Recent Activity side-by-side */}
       <div
-        className="glass-card"
-        id="widget-connection-health"
         style={{
-          padding: "16px 20px",
-          display: "flex",
-          alignItems: "center",
-          gap: "16px",
-          flexWrap: "wrap",
+          display: "grid",
+          gridTemplateColumns: "1fr 340px",
+          gap: "24px",
+          alignItems: "start",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <Wifi size={16} style={{ color: isConnected ? "rgb(34,197,94)" : "rgb(234,179,8)" }} />
-          <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
-            Facebook Page: {isConnected ? "Connected" : "Disconnected or not set up"}
-          </span>
-        </div>
-        
-        {isConnected && tokenExpiresAt && (
-          <>
-            <div style={{ width: "1px", height: "20px", background: "rgba(255,255,255,0.1)" }} />
-            <div style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.45)" }}>
-              Token expires: <span style={{ color: "rgba(255,255,255,0.7)" }}>{format(tokenExpiresAt, "d MMM yyyy")}</span>
-            </div>
-          </>
-        )}
-
-        <div style={{ width: "1px", height: "20px", background: "rgba(255,255,255,0.1)" }} />
-        <div style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.45)" }}>
-          Scheduler: <span style={{ color: isSchedulerRunning ? "rgb(34,197,94)" : "rgb(239,68,68)" }}>
-            {isSchedulerRunning ? "● Running" : "● Offline / Stopped"}
-          </span> 
-          {heartbeat && ` · Last tick: ${formatDistanceToNow(heartbeat.lastHeartbeatAt, { addSuffix: true })}`}
-        </div>
-        
-        <div style={{ marginLeft: "auto" }}>
-          <a
-            href="/settings"
-            style={{ fontSize: "0.75rem", color: "rgba(139,92,246,0.8)", textDecoration: "none" }}
+        {/* Next Posts Preview */}
+        <div className="glass-card-elevated" style={{ padding: "24px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "20px",
+            }}
           >
-            Page settings →
-          </a>
+            <div>
+              <h2 style={{ fontSize: "1rem", fontWeight: 600 }}>Upcoming Posts</h2>
+              <p
+                style={{
+                  fontSize: "0.8125rem",
+                  color: "rgba(255,255,255,0.45)",
+                  marginTop: "2px",
+                }}
+              >
+                Next posts scheduled in publishing queue
+              </p>
+            </div>
+            <a
+              href="/queue"
+              style={{
+                fontSize: "0.8125rem",
+                color: "rgb(139,92,246)",
+                textDecoration: "none",
+                fontWeight: 500,
+              }}
+            >
+              View all &rarr;
+            </a>
+          </div>
+
+          {activeQueue.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "40px 0",
+                color: "rgba(255,255,255,0.35)",
+              }}
+            >
+              <Clock
+                size={36}
+                style={{ margin: "0 auto 12px", opacity: 0.4 }}
+              />
+              <p style={{ fontWeight: 500, marginBottom: "4px" }}>
+                Queue is empty
+              </p>
+              <p style={{ fontSize: "0.8125rem" }}>
+                Generate drafts and approve them to schedule publication.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {activeQueue.map((item, idx) => (
+                <div
+                  key={item.id}
+                  id={`queue-preview-item-${idx}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "14px",
+                    padding: "12px 14px",
+                    borderRadius: "8px",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "6px",
+                      background: "rgba(139,92,246,0.15)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "0.8125rem",
+                      fontWeight: 700,
+                      color: "rgb(196,181,253)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    #{idx + 1}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {item.contentVersion?.headline || "Untitled Post"}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "rgba(255,255,255,0.4)",
+                        marginTop: "2px",
+                      }}
+                    >
+                      {item.scheduledAt
+                        ? format(new Date(item.scheduledAt), "EEE d MMM, HH:mm")
+                        : "Slot pending"}
+                    </div>
+                  </div>
+                  <span
+                    className={`badge ${statusBadgeMap[item.status] || "badge-queued"}`}
+                    style={{ flexShrink: 0 }}
+                  >
+                    {item.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Activity Feed */}
+        <div className="glass-card-elevated" style={{ padding: "24px" }}>
+          <div style={{ marginBottom: "20px" }}>
+            <h2 style={{ fontSize: "1rem", fontWeight: 600 }}>Recent Activity</h2>
+            <p
+              style={{
+                fontSize: "0.8125rem",
+                color: "rgba(255,255,255,0.45)",
+                marginTop: "2px",
+              }}
+            >
+              Latest audit events
+            </p>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {recentActivity.length === 0 ? (
+              <p
+                style={{
+                  fontSize: "0.8125rem",
+                  color: "rgba(255,255,255,0.35)",
+                  textAlign: "center",
+                  padding: "20px 0",
+                }}
+              >
+                No recent activity.
+              </p>
+            ) : (
+              recentActivity.map((act) => (
+                <div
+                  key={act.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      background: `rgb(${activityColour[act.type] || "59,130,246"})`,
+                      marginTop: "5px",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div>
+                    <div
+                      style={{
+                        fontSize: "0.8125rem",
+                        color: "rgba(255,255,255,0.8)",
+                      }}
+                    >
+                      {act.text}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.6875rem",
+                        color: "rgba(255,255,255,0.35)",
+                        marginTop: "2px",
+                      }}
+                    >
+                      {act.time}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

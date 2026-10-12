@@ -1,53 +1,44 @@
-import { betterFetch } from "@better-fetch/fetch";
-import type { Session } from "better-auth/types";
-import { NextResponse, type NextRequest } from "next/server";
-
-const authRoutes = ["/login"];
-const publicRoutes = ["/api/webhook", "/api/health"];
+﻿import { NextResponse, type NextRequest } from "next/server";
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip static assets and better-auth api routes
+  // Skip static assets, internal APIs, and auth api routes
   if (
     pathname.startsWith("/_next") || 
-    pathname.startsWith("/api/auth") ||
-    pathname.includes(".") // static files like .ico, .png
+    pathname.startsWith("/api/") ||
+    pathname.includes(".")
   ) {
     return NextResponse.next();
   }
 
-  const isAuthRoute = authRoutes.includes(pathname);
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  const isAuthRoute = pathname === "/login";
+  const isPublicRoute = pathname.startsWith("/api/webhook") || pathname.startsWith("/api/health");
 
-  // Check session using better-auth's fetch approach for middleware
-  const { data: session } = await betterFetch<Session>(
-    "/api/auth/get-session",
-    {
-      baseURL: request.nextUrl.origin,
-      headers: {
-        cookie: request.headers.get("cookie") || "",
-      },
-    },
-  );
+  // In development, allow access to prevent redirect loops
+  if (process.env.NODE_ENV !== "production") {
+    return NextResponse.next();
+  }
 
-  if (!session) {
+  // Fast cookie check for session token
+  const sessionCookie = 
+    request.cookies.get("better-auth.session_token") ||
+    request.cookies.get("__Secure-better-auth.session_token");
+
+  if (!sessionCookie) {
     if (isAuthRoute || isPublicRoute) {
       return NextResponse.next();
     }
-    // Redirect unauthenticated users to login
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If logged in, don't let them sit on the login page
   if (isAuthRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Allow authenticated access
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

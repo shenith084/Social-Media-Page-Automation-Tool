@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { queueItems, publishedPosts, drafts, pages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -20,15 +20,13 @@ export async function POST(req: NextRequest) {
 
     if (success) {
       // Mark Queue item as published
-      await db
-        .update(queueItems)
-        .set({ status: "published" })
+      await db.update(queueItems).set({ status: "published" })
         .where(eq(queueItems.id, queueItemId));
 
       // Mark Draft as published
       await db
         .update(drafts)
-        .set({ status: "published" })
+        .set({ status: "approved" })
         .where(eq(drafts.id, job.draftId));
 
       // Record published post
@@ -58,3 +56,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

@@ -1,4 +1,4 @@
-import { drizzle } from "drizzle-orm/postgres-js";
+﻿import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
@@ -13,12 +13,17 @@ if (!connectionString) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
-// Prevent multiple connections in development (Next.js hot-reload)
-const client: postgres.Sql = global._pgClient ?? postgres(connectionString, {
-  max: 10,
-  idle_timeout: 20,
-  connect_timeout: 10,
-});
+// Clean Neon connection URL to avoid pooler timeout issues in local dev
+const cleanUrl = connectionString.replace("-pooler", "").replace("&channel_binding=require", "");
+
+const client: postgres.Sql =
+  global._pgClient ??
+  postgres(cleanUrl, {
+    max: 5,
+    idle_timeout: 30,
+    connect_timeout: 30,
+    prepare: false,
+  });
 
 if (process.env.NODE_ENV !== "production") {
   global._pgClient = client;

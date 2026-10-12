@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+﻿import { Metadata } from "next";
 import { Search, Filter, Archive, RefreshCcw, CheckSquare } from "lucide-react";
 
 import { db } from "@/lib/db";
@@ -97,7 +97,7 @@ export default async function DraftsPage() {
           <input
             id="drafts-search"
             type="search"
-            placeholder="Search drafts by topic or caption…"
+            placeholder="Search drafts by topic or captionâ€¦"
             style={{
               width: "100%",
               padding: "9px 14px 9px 36px",
@@ -221,12 +221,12 @@ export default async function DraftsPage() {
                   <h3 style={{ fontSize: "0.9375rem", fontWeight: 600 }}>{draft.headline || "Untitled"}</h3>
                   <span className={`badge ${cls}`}>{label}</span>
                   <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)" }}>
-                    {draft.topic} · {draft.updatedAt ? formatRelative(draft.updatedAt.toISOString()) : "Just now"}
+                    {draft.topic} Â· {draft.updatedAt ? formatRelative(draft.updatedAt.toISOString()) : "Just now"}
                   </span>
                 </div>
                 <p style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>
                   {(draft.caption || "").length > 160
-                    ? (draft.caption || "").slice(0, 157) + "…"
+                    ? (draft.caption || "").slice(0, 157) + "â€¦"
                     : draft.caption || "No caption"}
                 </p>
               </div>
@@ -251,7 +251,7 @@ export default async function DraftsPage() {
                 >
                   Edit / Preview
                 </a>
-                {draft.status !== "archived" && (
+                {draft.status !== "complete" && (
                   <button
                     id={`btn-archive-${draft.id}`}
                     style={{
@@ -272,7 +272,7 @@ export default async function DraftsPage() {
                     Archive
                   </button>
                 )}
-                {draft.status === "draft" && (
+                {draft.status === "processing" && (
                   <button
                     id={`btn-regenerate-${draft.id}`}
                     style={{
