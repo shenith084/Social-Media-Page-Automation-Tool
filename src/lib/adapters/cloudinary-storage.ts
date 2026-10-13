@@ -25,7 +25,7 @@ export class CloudinaryStorageProvider implements StorageProvider {
     const hash = crypto.createHash("sha256").update(buffer).digest("hex");
 
     return new Promise((resolve, reject) => {
-      const publicId = key.replace(/\.[^/.]+$/, ""); // strip extension for public_id
+      const publicId = key.replace(/\.[^/.]+$/, "");
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: this.folder,
@@ -58,5 +58,14 @@ export class CloudinaryStorageProvider implements StorageProvider {
 
   getPublicUrl(key: string): string {
     return cloudinary.url(key, { secure: true });
+  }
+
+  async exists(key: string): Promise<boolean> {
+    try {
+      const res = await cloudinary.api.resource(key);
+      return !!res;
+    } catch {
+      return false;
+    }
   }
 }
