@@ -1,4 +1,4 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 import {
   Sparkles,
   ListOrdered,
@@ -19,8 +19,10 @@ import {
 } from "@/lib/db/schema";
 import { desc, asc, eq, sql, gt } from "drizzle-orm";
 import { format, formatDistanceToNow } from "date-fns";
+import { ManualDispatchButton } from "@/components/admin/dispatch-button";
 
 export const metadata: Metadata = { title: "Dashboard" };
+export const dynamic = "force-dynamic";
 
 const statusBadgeMap: Record<string, string> = {
   queued: "badge-queued",
@@ -190,10 +192,12 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        {/* Quick action */}
-        <a
-          href="/generate"
-          id="btn-quick-generate"
+        {/* Quick actions */}
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+          <ManualDispatchButton />
+          <a
+            href="/generate"
+            id="btn-quick-generate"
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -213,6 +217,7 @@ export default async function DashboardPage() {
           <Sparkles size={16} />
           Generate Content
         </a>
+        </div>
       </div>
 
       {/* Connection & scheduler status banner */}

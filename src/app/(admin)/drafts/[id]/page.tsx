@@ -1,175 +1,117 @@
+import { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, CheckCircle2, Archive, Sparkles, Clock, Hash } from "lucide-react";
 import { db } from "@/lib/db";
 import { generationItems, generationRequests } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { notFound, redirect } from "next/navigation";
-import { Image as ImageIcon, Check, ArrowLeft } from "lucide-react";
 import { approveAndQueueAction } from "@/app/actions/queue";
+import { archiveDraftAction } from "@/app/actions/draft-detail";
 
-export default async function DraftPreviewPage({ params }: { params: Promise<{ id: string }> }) {
+export const metadata: Metadata = { title: "Review Draft" };
+export const dynamic = "force-dynamic";
+
+export default async function DraftDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  
-  const itemData = await db
-    .select({
-      item: generationItems,
-      topic: generationRequests.topic,
-    })
+  const items = await db
+    .select({ item: generationItems, topic: generationRequests.topic, requestedAt: generationRequests.createdAt })
     .from(generationItems)
     .leftJoin(generationRequests, eq(generationItems.requestId, generationRequests.id))
     .where(eq(generationItems.id, id))
     .limit(1);
 
-  if (!itemData || itemData.length === 0) {
-    notFound();
-  }
+  if (!items || items.length === 0) notFound();
+  const { item, topic, requestedAt } = items[0];
+  const isActive = item.status !== "failed";
 
-  const { item, topic } = itemData[0];
+  const imagePreviewUrl = item.headline
+    ? `/api/v1/internal/render-image?headline=${encodeURIComponent(item.headline)}`
+    : null;
 
   return (
-    <div style={{ padding: "32px", maxWidth: "800px", margin: "0 auto" }} className="animate-fade-in">
-      {/* Header */}
-      <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "16px" }}>
-        <a href="/drafts" style={{ color: "rgba(255,255,255,0.5)", textDecoration: "none", display: "flex", alignItems: "center", gap: "4px" }}>
-          <ArrowLeft size={16} /> Back
-        </a>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>Review Draft</h1>
+    <div style={{ padding: "32px", maxWidth: "900px" }} className="animate-fade-in">
+      <Link href="/drafts" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "rgba(255,255,255,0.5)", textDecoration: "none", fontSize: "0.875rem", marginBottom: "24px" }}>
+        <ArrowLeft size={16} /> Back to Draft Library
+      </Link>
+
+      <div style={{ marginBottom: "28px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+        <div>
+          <h1 style={{ fontSize: "1.75rem", fontWeight: 700, marginBottom: "6px" }}>{item.headline || "Untitled Draft"}</h1>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ padding: "3px 10px", borderRadius: "20px", fontSize: "0.75rem", fontWeight: 600, background: "rgba(139,92,246,0.15)", color: "rgb(167,139,250)", border: "1px solid rgba(139,92,246,0.3)", textTransform: "capitalize" }}>
+              {item.status}
+            </span>
+            {topic && <span style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.4)" }}>Topic: {topic}</span>}
+            {requestedAt && <span style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", gap: "4px" }}><Clock size={12} />{new Date(requestedAt).toLocaleDateString("en-GB")}</span>}
+          </div>
+        </div>
+        {isActive && (
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <form action={async () => { "use server"; await approveAndQueueAction(item.id); }}>
+              <button type="submit" id="btn-approve-queue" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "linear-gradient(135deg, rgb(34,197,94), rgb(22,163,74))", border: "none", borderRadius: "8px", color: "white", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 14px rgba(34,197,94,0.35)" }}>
+                <CheckCircle2 size={16} /> Approve &amp; Queue
+              </button>
+            </form>
+            <form action={async () => { "use server"; await archiveDraftAction(item.id); }}>
+              <button type="submit" id="btn-archive-draft" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 18px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", color: "rgba(255,255,255,0.6)", fontSize: "0.875rem", fontWeight: 500, cursor: "pointer" }}>
+                <Archive size={15} /> Archive
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
-      <div className="glass-card-elevated" style={{ padding: "32px", display: "flex", flexDirection: "column", gap: "24px" }}>
-        {/* Top Info */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "16px" }}>
-          <div>
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
-              Topic
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "24px", alignItems: "start" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div className="glass-card-elevated" style={{ padding: "24px" }}>
+            <h2 style={{ fontSize: "0.8125rem", fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <Sparkles size={13} style={{ color: "rgb(139,92,246)" }} /> Caption
+            </h2>
+            <p style={{ fontSize: "0.9375rem", lineHeight: 1.7, color: "rgba(255,255,255,0.85)", whiteSpace: "pre-wrap" }}>
+              {item.caption || "No caption generated."}
+            </p>
+          </div>
+
+          {item.hashtags && Array.isArray(item.hashtags) && (item.hashtags as string[]).length > 0 && (
+            <div className="glass-card-elevated" style={{ padding: "24px" }}>
+              <h2 style={{ fontSize: "0.8125rem", fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <Hash size={13} style={{ color: "rgb(59,130,246)" }} /> Hashtags
+              </h2>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {(item.hashtags as string[]).map((tag, i) => (
+                  <span key={i} style={{ padding: "4px 12px", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: "20px", fontSize: "0.8125rem", color: "rgb(147,197,253)" }}>#{tag.replace(/^#/, "")}</span>
+                ))}
+              </div>
             </div>
-            <div style={{ fontSize: "1rem", fontWeight: 500 }}>{topic || "General"}</div>
-          </div>
-          <div>
-             <span className={`badge badge-${item.status === "failed" ? "blocked" : "ready"}`}>
-               {item.status}
-             </span>
-          </div>
+          )}
         </div>
 
-        {/* Content */}
-        <div>
-          <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>
-            Headline
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div className="glass-card-elevated" style={{ padding: "20px" }}>
+            <h2 style={{ fontSize: "0.8125rem", fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Image Preview</h2>
+            {imagePreviewUrl ? (
+              <div style={{ borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <img src={imagePreviewUrl} alt="Post image preview" style={{ width: "100%", display: "block" }} />
+              </div>
+            ) : (
+              <div style={{ height: "160px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.25)", fontSize: "0.8125rem" }}>No image</div>
+            )}
           </div>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0, color: "white" }}>
-            {item.headline || "No headline generated"}
-          </h2>
-        </div>
-
-        <div>
-          <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>
-            Caption / Body
-          </div>
-          <div style={{ fontSize: "1rem", color: "rgba(255,255,255,0.8)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-            {item.caption || "No caption generated"}
-          </div>
-        </div>
-
-        {item.hashtags && Array.isArray(item.hashtags) && item.hashtags.length > 0 && (
-          <div>
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>
-              Hashtags
-            </div>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {item.hashtags.map((tag, idx) => (
-                <span key={idx} style={{ color: "rgb(139,92,246)", fontSize: "0.875rem", fontWeight: 500 }}>
-                  #{tag.replace("#", "")}
-                </span>
+          <div className="glass-card-elevated" style={{ padding: "20px" }}>
+            <h2 style={{ fontSize: "0.8125rem", fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Details</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {[
+                { label: "Status", value: item.status },
+                { label: "Position", value: `#${item.position || 1}` },
+                { label: "Created", value: item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB") : "—" },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.4)" }}>{label}</span>
+                  <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: "rgba(255,255,255,0.8)" }}>{value}</span>
+                </div>
               ))}
             </div>
           </div>
-        )}
-
-        {/* Image Preview / Generation */}
-        <div style={{ marginTop: "16px" }}>
-          <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>
-            Visual Asset
-          </div>
-          {/* Live Dynamic Image Rendered by Sharp (Workflow 04) */}
-          <div 
-            style={{ 
-              width: "100%", 
-              maxWidth: "500px",
-              aspectRatio: "1/1",
-              background: "rgba(255,255,255,0.02)", 
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "12px",
-              overflow: "hidden",
-              position: "relative",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src={`/api/v1/internal/render-image?headline=${encodeURIComponent(item.headline || "New Post")}`} 
-              alt="Generated Visual Asset"
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            />
-          </div>
-          
-          <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
-             <button
-                style={{
-                  padding: "8px 16px",
-                  background: "rgba(139,92,246,0.1)",
-                  border: "1px solid rgba(139,92,246,0.25)",
-                  borderRadius: "6px",
-                  color: "rgb(167,139,250)",
-                  fontSize: "0.8125rem",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                }}
-              >
-                Regenerate AI Background
-              </button>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "16px" }}>
-          <button
-            style={{
-              padding: "10px 20px",
-              background: "transparent",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "8px",
-              color: "white",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            Delete
-          </button>
-          
-          <form action={async () => {
-            "use server";
-            await approveAndQueueAction(item.id);
-            redirect("/queue");
-          }}>
-            <button
-              type="submit"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "10px 20px",
-                background: "linear-gradient(135deg, rgb(34,197,94), rgb(21,128,61))",
-                border: "none",
-                borderRadius: "8px",
-                color: "white",
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              <Check size={16} /> Approve & Queue
-            </button>
-          </form>
         </div>
       </div>
     </div>

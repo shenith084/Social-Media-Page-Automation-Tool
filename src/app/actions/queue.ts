@@ -20,12 +20,17 @@ export async function approveAndQueueAction(generationItemId: string) {
 
     const item = itemData[0];
 
-    // 2. Get the default Page
-    const pageData = await db.select().from(pages).limit(1);
-    if (!pageData || pageData.length === 0) {
+    // 2. Get the active connected Page
+    let activePage = await db.query.pages.findFirst({
+      where: eq(pages.isActive, true),
+    });
+    if (!activePage) {
+      activePage = (await db.select().from(pages).limit(1))[0];
+    }
+    if (!activePage) {
       throw new Error("No page connected. Please connect a Facebook page first.");
     }
-    const pageId = pageData[0].id;
+    const pageId = activePage.id;
 
     // 2.5 Get a user to satisfy approvedById
     const userData = await db.select().from(users).limit(1);

@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { db } from "@/lib/db";
 import { generationRequests, generationItems, pages } from "@/lib/db/schema";
@@ -13,6 +13,7 @@ export async function generateContentAction(
   audience: string,
   referenceText: string
 ) {
+  let requestId: string | null = null;
   try {
     let activePage = await db.query.pages.findFirst({
       where: eq(pages.isActive, true),
@@ -23,7 +24,7 @@ export async function generateContentAction(
     }
 
     if (!activePage) {
-      throw new Error("No connected page found.");
+      throw new Error("No connected page found. Please connect a Facebook page in Settings.");
     }
 
     const [requestRecord] = await db
@@ -40,12 +41,19 @@ export async function generateContentAction(
       })
       .returning();
 
-    // Directly call Google Gemini to guarantee instant creation if n8n is offline or async
-    const apiKey = process.env.GEMINI_API_KEY;
-    const model = process.env.TEXT_AI_MODEL || "gemini-3.5-flash";
+    requestId = requestRecord.id;
 
-    if (apiKey) {
-      const prompt = `You are a social media copywriter writing in British English.
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured.");
+    }
+
+    const primaryModel = process.env.TEXT_AI_MODEL || "gemini-3.5-flash";
+    const modelsToTry = [primaryModel, "gemini-3-flash-preview", "gemini-3.5-flash"];
+    // Remove duplicates
+    const uniqueModels = Array.from(new Set(modelsToTry));
+
+    const prompt = `You are a social media copywriter writing in British English.
 Topic: ${topic}
 Tone: ${tone}
 Target Audience: ${audience || "General social media audience"}
@@ -63,49 +71,96 @@ Generate ${postCount || 1} post(s). Return ONLY valid JSON matching this schema:
   ]
 }`;
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" },
-          }),
-        }
-      );
+    let rawText: string | null = null;
+    let lastError: string | null = null;
 
-      const data = await res.json();
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      if (rawText) {
-        const parsed = JSON.parse(rawText);
-        const postsList = parsed.posts || [parsed];
+    for (const model of uniqueModels) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: "application/json" },
+            }),
+          }
+        );
 
-        let pos = 1;
-        for (const p of postsList) {
-          await db.insert(generationItems).values({
-            requestId: requestRecord.id,
-            headline: p.headline || topic,
-            caption: p.caption || "",
-            hashtags: p.hashtags || [],
-            position: pos++,
-            status: "complete",
-          });
+        if (!res.ok) {
+          const errBody = await res.text();
+          lastError = `Model ${model} returned ${res.status}: ${errBody}`;
+          continue;
         }
 
-        await db
-          .update(generationRequests)
-          .set({ status: "ready" })
-          .where(eq(generationRequests.id, requestRecord.id));
+        const data = await res.json();
+        const extracted = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (extracted) {
+          rawText = extracted;
+          break;
+        }
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err.message : String(err);
       }
     }
+
+    if (!rawText) {
+      throw new Error(`Failed to generate content from AI models: ${lastError || "Unknown error"}`);
+    }
+
+    // Clean JSON response (strip markdown fences if present)
+    let cleanedText = rawText.trim();
+    if (cleanedText.startsWith("```json")) {
+      cleanedText = cleanedText.slice(7);
+    } else if (cleanedText.startsWith("```")) {
+      cleanedText = cleanedText.slice(3);
+    }
+    if (cleanedText.endsWith("```")) {
+      cleanedText = cleanedText.slice(0, -3);
+    }
+    cleanedText = cleanedText.trim();
+
+    const parsed = JSON.parse(cleanedText);
+    const postsList = Array.isArray(parsed)
+      ? parsed
+      : (Array.isArray(parsed.posts) ? parsed.posts : [parsed]);
+
+    let pos = 1;
+    for (const p of postsList) {
+      const hashtags = Array.isArray(p.hashtags)
+        ? p.hashtags.map((h: unknown) => String(h).replace(/^#/, ""))
+        : [];
+
+      await db.insert(generationItems).values({
+        requestId: requestRecord.id,
+        headline: p.headline || topic,
+        caption: p.caption || "",
+        hashtags: hashtags,
+        position: pos++,
+        status: "complete",
+      });
+    }
+
+    await db
+      .update(generationRequests)
+      .set({ status: "ready" })
+      .where(eq(generationRequests.id, requestRecord.id));
 
     revalidatePath("/drafts");
     revalidatePath("/dashboard");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("AI Generation Action Error:", error);
-    return { success: false, error: error.message };
+    if (requestId) {
+      try {
+        await db
+          .update(generationRequests)
+          .set({ status: "failed" })
+          .where(eq(generationRequests.id, requestId));
+      } catch { /* non-fatal */ }
+    }
+    return { success: false, error: message };
   }
 }
