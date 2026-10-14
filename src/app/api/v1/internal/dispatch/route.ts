@@ -109,7 +109,8 @@ export async function POST(request: NextRequest) {
     let imageArrayBuffer: ArrayBuffer | null = null;
     try {
       const appUrl = process.env.APP_URL || "http://localhost:3000";
-      const imgRes = await fetch(`${appUrl}/api/v1/internal/render-image?headline=${encodeURIComponent(headline)}`, { cache: "no-store" });
+      const promptParam = cv.imagePrompt || headline;
+      const imgRes = await fetch(`${appUrl}/api/v1/internal/render-image?headline=${encodeURIComponent(headline)}&prompt=${encodeURIComponent(promptParam)}`, { cache: "no-store" });
       if (imgRes.ok) imageArrayBuffer = await imgRes.arrayBuffer();
     } catch { /* fallback to text-only */ }
 

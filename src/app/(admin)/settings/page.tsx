@@ -1,4 +1,4 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 import { Wifi, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { db } from "@/lib/db";
 import { pages, pageConnections, scheduleSettings, testPosts, pageSettings } from "@/lib/db/schema";
@@ -8,8 +8,12 @@ export const metadata: Metadata = { title: "Page & Schedule Settings" };
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const pageList = await db.select().from(pages).limit(1);
-  const activePage = pageList[0];
+  let activePage = await db.query.pages.findFirst({
+    where: eq(pages.isActive, true),
+  });
+  if (!activePage) {
+    activePage = (await db.select().from(pages).limit(1))[0];
+  }
 
   const connections = activePage
     ? await db.select().from(pageConnections).where(eq(pageConnections.pageId, activePage.id)).limit(1)

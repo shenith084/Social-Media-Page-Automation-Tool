@@ -15,11 +15,15 @@ export async function POST(req: NextRequest) {
     // Insert the generated items into the database
     let position = 1;
     for (const post of posts) {
+      const caption = post.caption || "";
+      const tags = (caption.match(/#[a-zA-Z0-9_]+/g) || []).map((t: string) => t.replace('#', ''));
       await db.insert(generationItems).values({
         requestId: requestId,
-        headline: post.headline,
-        caption: post.caption,
+        headline: post.headline || "Social Post",
+        caption: caption,
+        hashtags: tags,
         position: position,
+        status: "complete",
       });
       position++;
     }

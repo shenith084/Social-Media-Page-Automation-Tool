@@ -1,99 +1,128 @@
 {
-  "name": "Content Generation Workflow (pxz-generate-content)",
-  "nodes": [
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "generate",
-        "options": {}
-      },
-      "name": "Webhook Trigger",
-      "type": "n8n-nodes-base.webhook",
-      "position": [0, 300],
-      "webhookId": "generate-content-webhook-id",
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "key",
-              "value": "YOUR_GEMINI_API_KEY_HERE"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{JSON.stringify({\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"You are a professional social media manager.\\nYour task is to write exactly \" + $json.body.postCount + \" Facebook posts about the following topic: \\\"\" + $json.body.topic + \"\\\".\\n\\nTone: \" + $json.body.tone + \"\\nTarget Audience: \" + ($json.body.audience || \"General Public\") + \"\\nAdditional Instructions: \" + ($json.body.instructions || \"None\") + \"\\nReference Material: \" + ($json.body.referenceText || \"None\") + \"\\n\\nPlease format your response strictly as a JSON array of objects.\\nEACH object must have exactly two keys:\\n1. \\\"headline\\\" (A short, catchy phrase, max 10 words, to be placed on the image)\\n2. \\\"caption\\\" (The text for the Facebook post itself, including hashtags and emojis)\\n\\nDo NOT wrap the JSON in markdown code blocks. Just output raw JSON.\\nExample output:\\n[\\n  {\\n    \\\"headline\\\": \\\"Unlock Your Productivity\\\",\\n    \\\"caption\\\": \\\"Struggling to stay focused? Try these 5 hacks! 🚀 #productivity\\\"\\n  }\\n]\"\n    }]\n  }]\n})}}",
-        "options": {}
-      },
-      "name": "Google Gemini",
-      "type": "n8n-nodes-base.httpRequest",
-      "position": [200, 300],
-      "typeVersion": 3
-    },
-    {
-      "parameters": {
-        "jsCode": "try {\n  const rawText = $input.item.json.candidates[0].content.parts[0].text;\n  const cleaned = rawText.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n  const posts = JSON.parse(cleaned);\n  return { json: { posts: posts } };\n} catch (e) {\n  return { json: { posts: [] } };\n}"
-      },
-      "name": "Parse JSON",
-      "type": "n8n-nodes-base.code",
-      "position": [400, 300],
-      "typeVersion": 2
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://host.docker.internal:3000/api/v1/internal/drafts/callback",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{JSON.stringify({\n  requestId: $(\"Webhook Trigger\").item.json.body.requestId,\n  posts: $json.posts\n})}}",
-        "options": {}
-      },
-      "name": "Save to Database",
-      "type": "n8n-nodes-base.httpRequest",
-      "position": [600, 300],
-      "typeVersion": 3
-    }
-  ],
-  "connections": {
-    "Webhook Trigger": {
-      "main": [
-        [
-          {
-            "node": "Google Gemini",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Google Gemini": {
-      "main": [
-        [
-          {
-            "node": "Parse JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse JSON": {
-      "main": [
-        [
-          {
-            "node": "Save to Database",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": false
+    "name":  "Content Generation Workflow (pxz-generate-content)",
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "generate",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "name":  "Webhook Trigger",
+                      "type":  "n8n-nodes-base.webhook",
+                      "position":  [
+                                       0,
+                                       300
+                                   ],
+                      "webhookId":  "generate-content-webhook-id",
+                      "typeVersion":  1
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
+                                         "sendQuery":  true,
+                                         "queryParameters":  {
+                                                                 "parameters":  [
+                                                                                    {
+                                                                                        "name":  "key",
+                                                                                        "value":  "YOUR_GEMINI_API_KEY_HERE"
+                                                                                    }
+                                                                                ]
+                                                             },
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{JSON.stringify({\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"You are a professional social media manager writing in British English.\\nYour task is to write exactly \" + ($json.body.postCount || 1) + \" Facebook posts about the following topic: \\\"\" + $json.body.topic + \"\\\".\\n\\nTone: \" + ($json.body.tone || \"professional\") + \"\\nTarget Audience: \" + ($json.body.audience || \"General Public\") + \"\\nAdditional Instructions: \" + ($json.body.instructions || \"None\") + \"\\nReference Material: \" + ($json.body.referenceText || \"None\") + \"\\n\\nPlease format your response strictly as a JSON array of objects.\\nEACH object must have exactly two keys:\\n1. \\\"headline\\\" (A short, catchy phrase, max 10 words, to be placed on the image)\\n2. \\\"caption\\\" (The text for the Facebook post itself, including hashtags and emojis)\\n\\nDo NOT wrap the JSON in markdown code blocks. Just output raw JSON.\\nExample output:\\n[\\n  {\\n    \\\"headline\\\": \\\"Unlock Your Productivity\\\",\\n    \\\"caption\\\": \\\"Struggling to stay focused? Try these 5 hacks! Ã°Å¸Å¡â‚¬ #productivity\\\"\\n  }\\n]\"\n    }]\n  }]\n})}}",
+                                         "options":  {
+                                                         "retry":  {
+                                                                       "maxTries":  3,
+                                                                       "waitBetweenTries":  2000
+                                                                   }
+                                                     }
+                                     },
+                      "name":  "Google Gemini",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "position":  [
+                                       200,
+                                       300
+                                   ],
+                      "typeVersion":  3
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "try {\n  const rawText = $input.item.json.candidates[0].content.parts[0].text;\n  const cleaned = rawText.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n  const posts = JSON.parse(cleaned);\n  return { json: { posts: Array.isArray(posts) ? posts : (posts.posts || [posts]) } };\n} catch (e) {\n  return { json: { posts: [] } };\n}"
+                                     },
+                      "name":  "Parse JSON",
+                      "type":  "n8n-nodes-base.code",
+                      "position":  [
+                                       400,
+                                       300
+                                   ],
+                      "typeVersion":  2
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "http://host.docker.internal:3000/api/v1/internal/drafts/callback",
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{JSON.stringify({\n  requestId: $(\"Webhook Trigger\").item.json.body.requestId,\n  posts: $json.posts\n})}}",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "name":  "Save to Database",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "position":  [
+                                       600,
+                                       300
+                                   ],
+                      "typeVersion":  3
+                  }
+              ],
+    "connections":  {
+                        "Webhook Trigger":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Google Gemini",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            },
+                        "Google Gemini":  {
+                                              "main":  [
+                                                           [
+                                                               {
+                                                                   "node":  "Parse JSON",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ]
+                                                       ]
+                                          },
+                        "Parse JSON":  {
+                                           "main":  [
+                                                        [
+                                                            {
+                                                                "node":  "Save to Database",
+                                                                "type":  "main",
+                                                                "index":  0
+                                                            }
+                                                        ]
+                                                    ]
+                                       }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "saveExecutionProgress":  true,
+                     "saveManualExecutions":  true,
+                     "saveDataErrorExecution":  "all",
+                     "saveDataSuccessExecution":  "all"
+                 },
+    "active":  true,
+    "id":  "DGVnjyudBQ46drf2"
 }

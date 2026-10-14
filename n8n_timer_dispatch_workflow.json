@@ -1,98 +1,64 @@
 {
-  "name": "Timer Dispatch & Publishing Workflow (pxz-publish)",
-  "nodes": [
-    {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "minutes"
-            }
-          ]
-        }
-      },
-      "name": "Every Minute",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "position": [0, 300],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://host.docker.internal:3000/api/v1/internal/queue/claim",
-        "options": {}
-      },
-      "name": "Claim Job",
-      "type": "n8n-nodes-base.httpRequest",
-      "position": [200, 300],
-      "typeVersion": 3
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{$json.job != null}}",
-              "value2": true
-            }
-          ]
-        }
-      },
-      "name": "Is Job Due?",
-      "type": "n8n-nodes-base.if",
-      "position": [400, 300],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://host.docker.internal:3000/api/v1/internal/queue/publish",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{JSON.stringify({\n  queueItemId: $node[\"Claim Job\"].json.job.id\n})}}",
-        "options": {}
-      },
-      "name": "Publish Job",
-      "type": "n8n-nodes-base.httpRequest",
-      "position": [600, 200],
-      "typeVersion": 3,
-      "continueOnFail": true
-    }
-  ],
-  "connections": {
-    "Every Minute": {
-      "main": [
-        [
-          {
-            "node": "Claim Job",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Claim Job": {
-      "main": [
-        [
-          {
-            "node": "Is Job Due?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Is Job Due?": {
-      "main": [
-        [
-          {
-            "node": "Publish Job",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": true
+    "name":  "Timer Dispatch \u0026 Publishing Workflow (pxz-publish)",
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "rule":  {
+                                                      "interval":  [
+                                                                       {
+                                                                           "field":  "minutes"
+                                                                       }
+                                                                   ]
+                                                  }
+                                     },
+                      "name":  "Every Minute",
+                      "type":  "n8n-nodes-base.scheduleTrigger",
+                      "position":  [
+                                       0,
+                                       300
+                                   ],
+                      "typeVersion":  1
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "http://host.docker.internal:3000/api/v1/internal/dispatch",
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "{\"trigger\":\"n8n-timer\"}",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "name":  "Dispatch Due Job",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "position":  [
+                                       300,
+                                       300
+                                   ],
+                      "typeVersion":  3
+                  }
+              ],
+    "connections":  {
+                        "Every Minute":  {
+                                             "main":  [
+                                                          [
+                                                              {
+                                                                  "node":  "Dispatch Due Job",
+                                                                  "type":  "main",
+                                                                  "index":  0
+                                                              }
+                                                          ]
+                                                      ]
+                                         }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "saveExecutionProgress":  true,
+                     "saveManualExecutions":  true,
+                     "saveDataErrorExecution":  "all",
+                     "saveDataSuccessExecution":  "all"
+                 },
+    "active":  true,
+    "id":  "1TSkXhqcKhzQGEdr"
 }
