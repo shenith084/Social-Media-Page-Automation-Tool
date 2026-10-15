@@ -2,10 +2,10 @@
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Skip static assets, internal APIs, and auth api routes
+
+  // Skip static assets, Next.js internals and files with extensions
   if (
-    pathname.startsWith("/_next") || 
+    pathname.startsWith("/_next") ||
     pathname.startsWith("/api/") ||
     pathname.includes(".")
   ) {
@@ -13,25 +13,33 @@ export default async function middleware(request: NextRequest) {
   }
 
   const isAuthRoute = pathname === "/login";
-  const isPublicRoute = pathname.startsWith("/api/webhook") || pathname.startsWith("/api/health");
+  const isPublicRoute =
+    pathname === "/privacy" ||
+    pathname === "/data-deletion" ||
+    pathname.startsWith("/api/webhook") ||
+    pathname.startsWith("/api/health");
 
-  // In development, allow access to prevent redirect loops
-  if (process.env.NODE_ENV !== "production") {
+  // Always allow public routes through
+  if (isPublicRoute) {
     return NextResponse.next();
   }
 
-  // Fast cookie check for session token
-  const sessionCookie = 
+  // Fast cookie check for session token (works in both dev and prod)
+  const sessionCookie =
     request.cookies.get("better-auth.session_token") ||
     request.cookies.get("__Secure-better-auth.session_token");
 
   if (!sessionCookie) {
-    if (isAuthRoute || isPublicRoute) {
+    if (isAuthRoute) {
       return NextResponse.next();
     }
-    return NextResponse.redirect(new URL("/login", request.url));
+    // Redirect to login, preserving the intended destination
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
+  // Already logged in — redirect away from login page
   if (isAuthRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }

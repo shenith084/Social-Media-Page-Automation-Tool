@@ -1,0 +1,15 @@
+User-agent: *
+Disallow: /dashboard
+Disallow: /generate
+Disallow: /drafts
+Disallow: /queue
+Disallow: /calendar
+Disallow: /history
+Disallow: /recovery
+Disallow: /settings
+Disallow: /templates
+Disallow: /users
+Disallow: /usage
+Disallow: /api/
+Allow: /privacy
+Allow: /data-deletion

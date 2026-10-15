@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
@@ -40,6 +40,13 @@ export async function POST(request: NextRequest) {
   try {
     await db.update(systemHeartbeats).set({ lastHeartbeatAt: new Date() }).where(eq(systemHeartbeats.component, "n8n-scheduler"));
   } catch { /* non-fatal */ }
+  // 2b. Ping Healthchecks.io dead-man's switch (non-fatal)
+  const healthchecksUrl = process.env.HEALTHCHECKS_URL;
+  if (healthchecksUrl) {
+    fetch(healthchecksUrl, { method: "GET", signal: AbortSignal.timeout(5000) }).catch(() => {
+      // Non-fatal: scheduler continues even if ping fails
+    });
+  }
 
   // 3. Atomic claim using FOR UPDATE SKIP LOCKED
   const workerId = `worker-${crypto.randomUUID()}`;

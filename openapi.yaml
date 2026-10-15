@@ -1,0 +1,222 @@
+openapi: 3.0.3
+info:
+  title: Pixzora Social Media Automation API
+  description: |
+    Production REST API contract for Pixzora Social Media Page Automation Tool.
+    Automates content generation, scheduling, and live publishing to Facebook Pages.
+  version: 1.1.0
+servers:
+  - url: /api
+    description: Current Environment API Root
+
+paths:
+  /health:
+    get:
+      summary: System Health Check
+      description: Returns health status of database, scheduler heartbeats, and service connectivity.
+      responses:
+        '200':
+          description: System operational
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /v1/generation-requests:
+    post:
+      summary: Request AI Batch Generation
+      description: Initiates batch generation of social media copy and FLUX images.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - topic
+                - postCount
+              properties:
+                topic:
+                  type: string
+                  example: "Top 5 AI tools for digital creators"
+                instructions:
+                  type: string
+                  example: "Keep tone energetic and engaging"
+                postCount:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  example: 3
+                tone:
+                  type: string
+                  example: "professional"
+                audience:
+                  type: string
+                  example: "tech creators"
+                templateId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Generation job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      requestId:
+                        type: string
+                        format: uuid
+
+  /v1/queue-items:
+    post:
+      summary: Bulk Add to Publishing Queue
+      description: |
+        Accepts an ordered list of draft IDs, honours selection order, takes an Idempotency-Key,
+        and assigns scheduled slots in Europe/London timezone.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+          required: false
+          description: Unique client key to prevent duplicate queue submissions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - draftIds
+              properties:
+                draftIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '200':
+          description: Items queued successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      queued:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            draftId:
+                              type: string
+                            scheduledAt:
+                              type: string
+                              format: date-time
+
+  /v1/internal/dispatch:
+    post:
+      summary: Scheduled Job Dispatcher (Internal / n8n)
+      description: |
+        Invoked by n8n timer cron every minute. Claims due queue items atomically,
+        updates system heartbeat, and pings Healthchecks.io dead-man's switch.
+      security:
+        - InternalWebhookSecret: []
+      responses:
+        '200':
+          description: Due jobs processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  dispatchedCount:
+                    type: integer
+
+  /v1/internal/queue/claim:
+    post:
+      summary: Claim Due Queue Job
+      description: Claims the next due queue item using FOR UPDATE SKIP LOCKED.
+      security:
+        - InternalWebhookSecret: []
+      responses:
+        '200':
+          description: Job claimed
+        '204':
+          description: No due jobs available
+
+  /v1/internal/queue/publish:
+    post:
+      summary: Direct Facebook Publishing Route
+      description: Publishes an approved post with rendered image to the connected Facebook Page.
+      security:
+        - InternalWebhookSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - queueItemId
+              properties:
+                queueItemId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Post published to Facebook Page
+
+  /v1/internal/render-image:
+    get:
+      summary: Dynamic Image Overlay Renderer
+      description: Renders 1080x1080 JPG visual overlay with headline and branding using Satori/sharp.
+      parameters:
+        - in: query
+          name: headline
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: bgUrl
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rendered image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+
+components:
+  securitySchemes:
+    InternalWebhookSecret:
+      type: apiKey
+      in: header
+      name: x-internal-secret
+      description: Shared secret for internal dispatch and automation webhooks.

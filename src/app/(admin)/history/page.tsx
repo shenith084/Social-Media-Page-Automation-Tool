@@ -1,5 +1,5 @@
-﻿import { Metadata } from "next";
-import { ExternalLink, Clock } from "lucide-react";
+import { Metadata } from "next";
+import { ExternalLink, Clock, AlertTriangle, RefreshCcw } from "lucide-react";
 
 export const metadata: Metadata = { title: "Published History" };
 
@@ -10,23 +10,38 @@ import { eq, desc } from "drizzle-orm";
 export const dynamic = "force-dynamic";
 
 function formatPublished(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", {
-    timeZone: "Europe/London",
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  try {
+    return new Date(iso).toLocaleString("en-GB", {
+      timeZone: "Europe/London",
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso;
+  }
 }
 
 export default async function HistoryPage() {
-  const data = await db
-    .select({
-      published: publishedPosts,
-      contentVersion: contentVersions,
-    })
-    .from(publishedPosts)
-    .leftJoin(queueItems, eq(publishedPosts.queueItemId, queueItems.id))
-    .leftJoin(contentVersions, eq(queueItems.contentVersionId, contentVersions.id))
-    .orderBy(desc(publishedPosts.actualPublishedAt));
+  let data: Array<{
+    published: typeof publishedPosts.$inferSelect;
+    contentVersion: typeof contentVersions.$inferSelect | null;
+  }> = [];
+  let dbError: string | null = null;
+
+  try {
+    data = await db
+      .select({
+        published: publishedPosts,
+        contentVersion: contentVersions,
+      })
+      .from(publishedPosts)
+      .leftJoin(queueItems, eq(publishedPosts.queueItemId, queueItems.id))
+      .leftJoin(contentVersions, eq(queueItems.contentVersionId, contentVersions.id))
+      .orderBy(desc(publishedPosts.actualPublishedAt));
+  } catch (err: unknown) {
+    dbError = err instanceof Error ? err.message : String(err);
+    console.warn("Could not load published history from DB (transient error):", dbError);
+  }
 
   const PUBLISHED = data.map((d) => ({
     id: d.published.id,
@@ -47,84 +62,116 @@ export default async function HistoryPage() {
         </p>
       </div>
 
-      <div className="glass-card-elevated" style={{ overflow: "hidden" }}>
-        <table
-          id="history-table"
-          style={{ width: "100%", borderCollapse: "collapse" }}
-          role="table"
-          aria-label="Published posts history"
+      {dbError && (
+        <div
+          style={{
+            marginBottom: "20px",
+            padding: "16px 20px",
+            background: "rgba(239, 68, 68, 0.12)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            borderRadius: "12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+          }}
         >
-          <thead>
-            <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              {["Post", "Published (UK local)", "Platform ID", "Link"].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "12px 16px",
-                    textAlign: "left",
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    color: "rgba(255,255,255,0.4)",
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {PUBLISHED.map((post, i) => (
-              <tr
-                key={post.id}
-                id={post.id}
-                style={{
-                  borderBottom: i < PUBLISHED.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
-                }}
-              >
-                <td style={{ padding: "16px" }}>
-                  <div style={{ fontWeight: 500, fontSize: "0.875rem", marginBottom: "4px" }}>
-                    {post.title}
-                  </div>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
-                    {post.caption.length > 90 ? post.caption.slice(0, 87) + "â€¦" : post.caption}
-                  </div>
-                </td>
-                <td style={{ padding: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <Clock size={13} style={{ color: "rgba(34,197,94,0.6)" }} />
-                    <span style={{ fontSize: "0.875rem" }}>{formatPublished(post.publishedAt)}</span>
-                  </div>
-                </td>
-                <td style={{ padding: "16px" }}>
-                  <code style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.05)", padding: "2px 8px", borderRadius: "4px" }}>
-                    {post.platformPostId}
-                  </code>
-                </td>
-                <td style={{ padding: "16px" }}>
-                  <a
-                    href={post.postLink || "#"}
-                    id={`link-${post.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <AlertTriangle size={18} color="#f87171" />
+            <span style={{ fontSize: "0.875rem", color: "#fca5a5" }}>
+              Transient connection error to database. Please refresh your browser.
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="glass-card-elevated" style={{ overflow: "hidden" }}>
+        {PUBLISHED.length === 0 ? (
+          <div style={{ padding: "48px 24px", textAlign: "center", color: "rgba(255,255,255,0.4)" }}>
+            <p style={{ fontSize: "0.9375rem", marginBottom: "8px" }}>No published posts yet.</p>
+            <p style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.25)" }}>
+              Posts that are approved and dispatched will appear here with live links to Facebook.
+            </p>
+          </div>
+        ) : (
+          <table
+            id="history-table"
+            style={{ width: "100%", borderCollapse: "collapse" }}
+            role="table"
+            aria-label="Published posts history"
+          >
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                {["Post", "Published (UK local)", "Platform ID", "Link"].map((h) => (
+                  <th
+                    key={h}
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      fontSize: "0.8125rem",
-                      color: "rgba(96,165,250,0.8)",
-                      textDecoration: "none",
+                      padding: "12px 16px",
+                      textAlign: "left",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      color: "rgba(255,255,255,0.4)",
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
                     }}
                   >
-                    View on Facebook
-                    <ExternalLink size={11} />
-                  </a>
-                </td>
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {PUBLISHED.map((post, i) => (
+                <tr
+                  key={post.id}
+                  id={post.id}
+                  style={{
+                    borderBottom: i < PUBLISHED.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                  }}
+                >
+                  <td style={{ padding: "16px" }}>
+                    <div style={{ fontWeight: 500, fontSize: "0.875rem", marginBottom: "4px" }}>
+                      {post.title}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
+                      {post.caption.length > 90 ? post.caption.slice(0, 87) + "..." : post.caption}
+                    </div>
+                  </td>
+                  <td style={{ padding: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Clock size={13} style={{ color: "rgba(34,197,94,0.6)" }} />
+                      <span style={{ fontSize: "0.875rem" }}>{formatPublished(post.publishedAt)}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "16px" }}>
+                    <code style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.05)", padding: "2px 8px", borderRadius: "4px" }}>
+                      {post.platformPostId}
+                    </code>
+                  </td>
+                  <td style={{ padding: "16px" }}>
+                    <a
+                      href={post.postLink || "#"}
+                      id={`link-${post.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "0.8125rem",
+                        color: "rgba(96,165,250,0.8)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      View on Facebook
+                      <ExternalLink size={11} />
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <p style={{ marginTop: "16px", fontSize: "0.75rem", color: "rgba(255,255,255,0.25)" }}>

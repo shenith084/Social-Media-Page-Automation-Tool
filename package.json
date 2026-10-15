@@ -7,7 +7,8 @@
                     "build":  "next build",
                     "start":  "next start",
                     "lint":  "eslint",
-                    "test":  "tsx tests/scheduling-and-state-machine.test.ts"
+                    "test":  "tsx tests/scheduling-and-state-machine.test.ts",
+                    "type-check":  "tsc --noEmit"
                 },
     "dependencies":  {
                          "@better-auth/utils":  "^0.5.0",
