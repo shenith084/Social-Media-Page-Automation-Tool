@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useTransition } from "react";
 import { Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -23,7 +23,6 @@ export function ManualDispatchButton() {
         setStatusType("error");
         setStatusMessage(res.error || "Dispatch failed");
       }
-
       setTimeout(() => {
         setStatusMessage(null);
         setStatusType(null);
@@ -40,17 +39,18 @@ export function ManualDispatchButton() {
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: "8px",
-          padding: "10px 18px",
-          background: "linear-gradient(135deg, rgb(59,130,246), rgb(37,99,235))",
+          gap: "7px",
+          padding: "9px 18px",
+          background: "linear-gradient(135deg, #2563EB, #3B82F6)",
           border: "none",
           borderRadius: "8px",
           color: "white",
           fontSize: "0.875rem",
           fontWeight: 600,
           cursor: isPending ? "wait" : "pointer",
-          boxShadow: "0 4px 14px rgba(59,130,246,0.3)",
+          boxShadow: "0 1px 3px rgba(59,130,246,0.3)",
           opacity: isPending ? 0.7 : 1,
+          transition: "opacity 0.15s ease",
         }}
       >
         {isPending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
@@ -64,20 +64,14 @@ export function ManualDispatchButton() {
             alignItems: "center",
             gap: "6px",
             fontSize: "0.8125rem",
-            color: statusType === "success" ? "rgb(34,197,94)" : "rgb(239,68,68)",
-            padding: "4px 8px",
+            color: statusType === "success" ? "#16A34A" : "#DC2626",
+            padding: "4px 10px",
             borderRadius: "6px",
-            background:
-              statusType === "success"
-                ? "rgba(34,197,94,0.1)"
-                : "rgba(239,68,68,0.1)",
+            background: statusType === "success" ? "#DCFCE7" : "#FEE2E2",
+            fontWeight: 500,
           }}
         >
-          {statusType === "success" ? (
-            <CheckCircle2 size={13} />
-          ) : (
-            <AlertCircle size={13} />
-          )}
+          {statusType === "success" ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
           {statusMessage}
         </span>
       )}

@@ -1,11 +1,11 @@
 import { Metadata } from "next";
 import {
-  Sparkles,
   ListOrdered,
   CheckCircle2,
   AlertTriangle,
   Clock,
-  Wifi,
+  Send,
+  Sparkles,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import {
@@ -21,7 +21,7 @@ import { desc, asc, eq, sql, gt } from "drizzle-orm";
 import { format, formatDistanceToNow } from "date-fns";
 import { ManualDispatchButton } from "@/components/admin/dispatch-button";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Dashboard â€” Pixzora Social" };
 export const dynamic = "force-dynamic";
 
 const statusBadgeMap: Record<string, string> = {
@@ -32,18 +32,10 @@ const statusBadgeMap: Record<string, string> = {
   blocked: "badge-blocked",
 };
 
-const activityColour: Record<string, string> = {
-  success: "34,197,94",
-  info: "59,130,246",
-  warning: "234,179,8",
-  error: "239,68,68",
-};
-
 export default async function DashboardPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Parallelised DB queries for sub-second execution
   const [
     activeQueueData,
     publishedTodayCount,
@@ -52,73 +44,46 @@ export default async function DashboardPage() {
     activePageData,
     heartbeat,
   ] = await Promise.all([
-    // 1. Active queue
     db
-      .select({
-        queueItem: queueItems,
-        contentVersion: contentVersions,
-      })
+      .select({ queueItem: queueItems, contentVersion: contentVersions })
       .from(queueItems)
       .leftJoin(contentVersions, eq(queueItems.contentVersionId, contentVersions.id))
       .where(eq(queueItems.status, "queued"))
       .orderBy(asc(queueItems.scheduledAt))
       .limit(10),
-
-    // 2. Published today count
+    db.select({ count: sql<number>`count(*)` }).from(publishedPosts).where(gt(publishedPosts.actualPublishedAt, today)),
+    db.select({ count: sql<number>`count(*)` }).from(queueItems).where(eq(queueItems.status, "needs_review")),
+    db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(6),
     db
-      .select({ count: sql<number>`count(*)` })
-      .from(publishedPosts)
-      .where(gt(publishedPosts.actualPublishedAt, today)),
-
-    // 3. Failures count
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(queueItems)
-      .where(eq(queueItems.status, "needs_review")),
-
-    // 4. Recent activity
-    db
-      .select()
-      .from(auditLogs)
-      .orderBy(desc(auditLogs.createdAt))
-      .limit(5),
-
-    // 5. Active page connection
-    db
-      .select({
-        page: pages,
-        connection: pageConnections,
-      })
+      .select({ page: pages, connection: pageConnections })
       .from(pages)
       .leftJoin(pageConnections, eq(pages.id, pageConnections.pageId))
       .where(eq(pages.isActive, true))
       .limit(1),
-
-    // 6. System heartbeat
-    db
-      .select()
-      .from(systemHeartbeats)
-      .where(eq(systemHeartbeats.component, "n8n-scheduler"))
-      .orderBy(desc(systemHeartbeats.lastHeartbeatAt))
-      .limit(1),
+    db.select().from(systemHeartbeats).where(eq(systemHeartbeats.component, "n8n-scheduler")).orderBy(desc(systemHeartbeats.lastHeartbeatAt)).limit(1),
   ]);
 
-  const activeQueue = activeQueueData.map((q) => ({
-    ...q.queueItem,
-    contentVersion: q.contentVersion,
-  }));
-
+  const activeQueue = activeQueueData.map((q) => ({ ...q.queueItem, contentVersion: q.contentVersion }));
   const nextPost = activeQueue[0];
+  const page = activePageData[0]?.page;
+  const connection = activePageData[0]?.connection;
+  const isConnected = connection?.status === "connected";
+  const tokenExpiresAt = connection?.tokenExpiresAt;
+  const latestHeartbeat = heartbeat[0];
+  const isSchedulerRunning = latestHeartbeat
+    ? new Date().getTime() - new Date(latestHeartbeat.lastHeartbeatAt).getTime() < 5 * 60 * 1000
+    : false;
 
   const stats = [
     {
       id: "stat-next-post",
       label: "Next Post",
-      value: nextPost ? format(nextPost.scheduledAt, "MMM d, HH:mm") : "None",
+      value: nextPost ? format(nextPost.scheduledAt, "HH:mm") : "None",
       subValue: nextPost ? "Scheduled" : "Queue empty",
       icon: Clock,
-      colour: "139,92,246",
-      trend: null,
+      iconBg: "#EEF2FF",
+      iconColor: "#6366F1",
+      border: "#E0E7FF",
     },
     {
       id: "stat-queue-coverage",
@@ -126,26 +91,29 @@ export default async function DashboardPage() {
       value: `${activeQueue.length} posts`,
       subValue: "Currently in queue",
       icon: ListOrdered,
-      colour: "59,130,246",
-      trend: null,
+      iconBg: "#EFF6FF",
+      iconColor: "#3B82F6",
+      border: "#DBEAFE",
     },
     {
       id: "stat-published-today",
       label: "Published Today",
-      value: publishedTodayCount[0]?.count?.toString() || "0",
+      value: publishedTodayCount[0]?.count?.toString() ?? "0",
       subValue: "Since midnight UTC",
       icon: CheckCircle2,
-      colour: "34,197,94",
-      trend: null,
+      iconBg: "#F0FDF4",
+      iconColor: "#22C55E",
+      border: "#DCFCE7",
     },
     {
       id: "stat-failures",
       label: "Action Required",
-      value: failuresCount[0]?.count?.toString() || "0",
+      value: failuresCount[0]?.count?.toString() ?? "0",
       subValue: "Needs review",
       icon: AlertTriangle,
-      colour: failuresCount[0]?.count > 0 ? "239,68,68" : "234,179,8",
-      trend: null,
+      iconBg: "#FFFBEB",
+      iconColor: "#F59E0B",
+      border: "#FDE68A",
     },
   ];
 
@@ -153,215 +121,156 @@ export default async function DashboardPage() {
     id: log.id,
     text: log.action,
     time: formatDistanceToNow(new Date(log.createdAt), { addSuffix: true }),
-    type:
-      log.action.toLowerCase().includes("fail") ||
-      log.action.toLowerCase().includes("error")
-        ? "error"
-        : "info",
+    isError: log.action.toLowerCase().includes("fail") || log.action.toLowerCase().includes("error"),
   }));
 
-  const connection = activePageData[0]?.connection;
-  const isConnected = connection?.status === "connected";
-  const tokenExpiresAt = connection?.tokenExpiresAt;
-
-  const latestHeartbeat = heartbeat[0];
-  const isSchedulerRunning = latestHeartbeat
-    ? new Date().getTime() - new Date(latestHeartbeat.lastHeartbeatAt).getTime() <
-      5 * 60 * 1000
-    : false;
+  const schedulerLabel = isSchedulerRunning ? "Running" : "Standing By (1-min cron)";
 
   return (
-    <div style={{ padding: "32px", maxWidth: "1200px" }} className="animate-fade-in">
-      {/* Header */}
-      <div
-        style={{
-          marginBottom: "32px",
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "16px",
-        }}
-      >
+    <div style={{ padding: "32px 36px", minHeight: "100dvh", background: "#F3F4F6", color: "#111827" }}>
+      {/* Page Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "28px", flexWrap: "wrap", gap: "14px" }}>
         <div>
-          <h1 style={{ fontSize: "1.75rem", fontWeight: 700, marginBottom: "4px" }}>
+          <h1 style={{ fontSize: "1.875rem", fontWeight: 700, color: "#111827", marginBottom: "4px", lineHeight: 1.2 }}>
             Dashboard
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem" }}>
+          <p style={{ fontSize: "0.875rem", color: "#6B7280", fontWeight: 400 }}>
             {format(new Date(), "EEEE, d MMMM yyyy")}
           </p>
         </div>
-
-        {/* Quick actions */}
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           <ManualDispatchButton />
           <a
             href="/generate"
             id="btn-quick-generate"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 20px",
-            background: "linear-gradient(135deg, rgb(139,92,246), rgb(109,40,217))",
-            border: "none",
-            borderRadius: "8px",
-            color: "white",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-            textDecoration: "none",
-            boxShadow: "0 4px 16px rgba(139,92,246,0.35)",
-            transition: "transform 0.15s, box-shadow 0.15s",
-          }}
-        >
-          <Sparkles size={16} />
-          Generate Content
-        </a>
-        </div>
-      </div>
-
-      {/* Connection & scheduler status banner */}
-      <div
-        id="banner-system-health"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "12px 20px",
-          borderRadius: "10px",
-          marginBottom: "28px",
-          background: isConnected
-            ? "rgba(34, 197, 94, 0.08)"
-            : "rgba(239, 68, 68, 0.08)",
-          border: isConnected
-            ? "1px solid rgba(34, 197, 94, 0.25)"
-            : "1px solid rgba(239, 68, 68, 0.25)",
-          flexWrap: "wrap",
-          gap: "12px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Wifi
-            size={16}
-            style={{ color: isConnected ? "rgb(34,197,94)" : "rgb(239,68,68)" }}
-          />
-          <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
-            {isConnected ? (
-              <>
-                Facebook Page: <strong>{activePageData[0]?.page.name || "Viral reels"}</strong> Connected
-                <span
-                  style={{
-                    color: "rgba(255,255,255,0.45)",
-                    marginLeft: "8px",
-                    fontSize: "0.8125rem",
-                  }}
-                >
-                  Token: Never Expires
-                </span>
-              </>
-            ) : (
-              <>
-                Facebook Page Disconnected &mdash;{" "}
-                <a
-                  href="/settings"
-                  style={{ color: "rgb(239,68,68)", textDecoration: "underline" }}
-                >
-                  Reconnect now
-                </a>
-              </>
-            )}
-          </span>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span
             style={{
-              width: "8px",
-              height: "8px",
-              borderRadius: "50%",
-              background: isSchedulerRunning
-                ? "rgb(34, 197, 94)"
-                : "rgb(234, 179, 8)",
-              display: "inline-block",
-            }}
-          />
-          <span
-            style={{
-              fontSize: "0.8125rem",
-              color: "rgba(255,255,255,0.6)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "7px",
+              padding: "9px 18px",
+              background: "linear-gradient(135deg, #7C3AED, #6366F1)",
+              borderRadius: "8px",
+              color: "white",
+              textDecoration: "none",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              boxShadow: "0 1px 3px rgba(99,102,241,0.3)",
+              transition: "opacity 0.15s ease",
             }}
           >
-            Scheduler: {isSchedulerRunning ? "Active" : "Standing By (1-min cron)"}
+            <Sparkles size={15} />
+            Generate Content
+          </a>
+        </div>
+      </div>
+
+      {/* Facebook Status Banner */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        padding: "12px 20px",
+        background: "white",
+        borderRadius: "10px",
+        border: "1px solid #E5E7EB",
+        marginBottom: "24px",
+        flexWrap: "wrap",
+      }}>
+        {/* Facebook icon */}
+        <div style={{
+          width: "36px",
+          height: "36px",
+          borderRadius: "50%",
+          background: "#1877F2",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+          </svg>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ fontSize: "0.875rem", color: "#374151", fontWeight: 500 }}>
+            Facebook Page:
+          </span>
+          <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "#111827" }}>
+            {page?.name ?? "Viral reels"}
+          </span>
+          <span style={{
+            padding: "2px 8px",
+            borderRadius: "999px",
+            background: "#DCFCE7",
+            color: "#16A34A",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+          }}>
+            {isConnected ? "Connected" : "Disconnected"}
+          </span>
+        </div>
+        <div style={{ width: "1px", height: "20px", background: "#E5E7EB" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ fontSize: "0.8125rem", color: "#6B7280" }}>Token:</span>
+          <span style={{ fontSize: "0.8125rem", color: "#374151", fontWeight: 500 }}>
+            {tokenExpiresAt ? format(new Date(tokenExpiresAt), "d MMM yyyy") : "Never Expires"}
+          </span>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "7px" }}>
+          <div style={{
+            width: "8px",
+            height: "8px",
+            borderRadius: "50%",
+            background: isSchedulerRunning ? "#22C55E" : "#F59E0B",
+            flexShrink: 0,
+          }} />
+          <span style={{ fontSize: "0.8125rem", color: "#6B7280" }}>
+            Scheduler: <strong style={{ color: "#374151" }}>{schedulerLabel}</strong>
           </span>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div
-        id="kpi-cards-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "16px",
-          marginBottom: "32px",
-        }}
-      >
+      {/* Stat Cards */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: "16px",
+        marginBottom: "24px",
+      }}>
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
               key={stat.id}
               id={stat.id}
-              className="glass-card-elevated"
-              style={{ padding: "20px" }}
+              style={{
+                background: "white",
+                borderRadius: "10px",
+                border: `1px solid ${stat.border}`,
+                padding: "20px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "12px",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "0.8125rem",
-                    fontWeight: 500,
-                    color: "rgba(255,255,255,0.6)",
-                  }}
-                >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+                <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#6B7280" }}>
                   {stat.label}
                 </span>
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "8px",
-                    background: `rgba(${stat.colour}, 0.12)`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Icon size={18} style={{ color: `rgb(${stat.colour})` }} />
+                <div style={{
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "8px",
+                  background: stat.iconBg,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}>
+                  <Icon size={17} color={stat.iconColor} />
                 </div>
               </div>
-              <div
-                style={{
-                  fontSize: "1.75rem",
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                  marginBottom: "4px",
-                }}
-              >
+              <div style={{ fontSize: "1.875rem", fontWeight: 700, color: "#111827", lineHeight: 1, marginBottom: "4px" }}>
                 {stat.value}
               </div>
-              <div
-                style={{
-                  fontSize: "0.8125rem",
-                  color: "rgba(255,255,255,0.4)",
-                }}
-              >
+              <div style={{ fontSize: "0.8125rem", color: "#9CA3AF" }}>
                 {stat.subValue}
               </div>
             </div>
@@ -369,71 +278,51 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      {/* Active Queue & Recent Activity side-by-side */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 340px",
-          gap: "24px",
-          alignItems: "start",
-        }}
-      >
-        {/* Next Posts Preview */}
-        <div className="glass-card-elevated" style={{ padding: "24px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "20px",
-            }}
-          >
+      {/* Bottom Two-Column Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "20px", alignItems: "start" }}>
+        {/* Upcoming Posts */}
+        <div style={{
+          background: "white",
+          borderRadius: "10px",
+          border: "1px solid #E5E7EB",
+          padding: "24px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "6px" }}>
             <div>
-              <h2 style={{ fontSize: "1rem", fontWeight: 600 }}>Upcoming Posts</h2>
-              <p
-                style={{
-                  fontSize: "0.8125rem",
-                  color: "rgba(255,255,255,0.45)",
-                  marginTop: "2px",
-                }}
-              >
+              <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#111827" }}>Upcoming Posts</h2>
+              <p style={{ fontSize: "0.8125rem", color: "#9CA3AF", marginTop: "2px" }}>
                 Next posts scheduled in publishing queue
               </p>
             </div>
-            <a
-              href="/queue"
-              style={{
-                fontSize: "0.8125rem",
-                color: "rgb(139,92,246)",
-                textDecoration: "none",
-                fontWeight: 500,
-              }}
-            >
-              View all &rarr;
+            <a href="/queue" style={{ fontSize: "0.8125rem", color: "#6366F1", fontWeight: 500, textDecoration: "none" }}>
+              View all â†’
             </a>
           </div>
 
           {activeQueue.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "40px 0",
-                color: "rgba(255,255,255,0.35)",
-              }}
-            >
-              <Clock
-                size={36}
-                style={{ margin: "0 auto 12px", opacity: 0.4 }}
-              />
-              <p style={{ fontWeight: 500, marginBottom: "4px" }}>
+            <div style={{ textAlign: "center", padding: "48px 0", color: "#9CA3AF" }}>
+              <div style={{
+                width: "60px",
+                height: "60px",
+                borderRadius: "50%",
+                border: "2px dashed #D1D5DB",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+              }}>
+                <Clock size={26} color="#D1D5DB" />
+              </div>
+              <p style={{ fontWeight: 600, color: "#6B7280", marginBottom: "6px", fontSize: "0.9375rem" }}>
                 Queue is empty
               </p>
-              <p style={{ fontSize: "0.8125rem" }}>
+              <p style={{ fontSize: "0.8125rem", color: "#9CA3AF" }}>
                 Generate drafts and approve them to schedule publication.
               </p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "16px" }}>
               {activeQueue.map((item, idx) => (
                 <div
                   key={item.id}
@@ -441,58 +330,37 @@ export default async function DashboardPage() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "14px",
+                    gap: "12px",
                     padding: "12px 14px",
                     borderRadius: "8px",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    background: "#F9FAFB",
+                    border: "1px solid #F3F4F6",
                   }}
                 >
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "6px",
-                      background: "rgba(139,92,246,0.15)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "0.8125rem",
-                      fontWeight: 700,
-                      color: "rgb(196,181,253)",
-                      flexShrink: 0,
-                    }}
-                  >
+                  <div style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "6px",
+                    background: "#EEF2FF",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    color: "#6366F1",
+                    flexShrink: 0,
+                  }}>
                     #{idx + 1}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: "0.875rem",
-                        fontWeight: 600,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
+                    <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {item.contentVersion?.headline || "Untitled Post"}
                     </div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "rgba(255,255,255,0.4)",
-                        marginTop: "2px",
-                      }}
-                    >
-                      {item.scheduledAt
-                        ? format(new Date(item.scheduledAt), "EEE d MMM, HH:mm")
-                        : "Slot pending"}
+                    <div style={{ fontSize: "0.75rem", color: "#9CA3AF", marginTop: "2px" }}>
+                      {item.scheduledAt ? format(new Date(item.scheduledAt), "EEE d MMM, HH:mm") : "Slot pending"}
                     </div>
                   </div>
-                  <span
-                    className={`badge ${statusBadgeMap[item.status] || "badge-queued"}`}
-                    style={{ flexShrink: 0 }}
-                  >
+                  <span className={`badge ${statusBadgeMap[item.status] || "badge-queued"}`} style={{ flexShrink: 0 }}>
                     {item.status}
                   </span>
                 </div>
@@ -501,71 +369,36 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        {/* Activity Feed */}
-        <div className="glass-card-elevated" style={{ padding: "24px" }}>
-          <div style={{ marginBottom: "20px" }}>
-            <h2 style={{ fontSize: "1rem", fontWeight: 600 }}>Recent Activity</h2>
-            <p
-              style={{
-                fontSize: "0.8125rem",
-                color: "rgba(255,255,255,0.45)",
-                marginTop: "2px",
-              }}
-            >
-              Latest audit events
-            </p>
-          </div>
+        {/* Recent Activity */}
+        <div style={{
+          background: "white",
+          borderRadius: "10px",
+          border: "1px solid #E5E7EB",
+          padding: "24px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        }}>
+          <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#111827", marginBottom: "4px" }}>Recent Activity</h2>
+          <p style={{ fontSize: "0.8125rem", color: "#9CA3AF", marginBottom: "20px" }}>Latest audit events</p>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {recentActivity.length === 0 ? (
-              <p
-                style={{
-                  fontSize: "0.8125rem",
-                  color: "rgba(255,255,255,0.35)",
-                  textAlign: "center",
-                  padding: "20px 0",
-                }}
-              >
+              <p style={{ fontSize: "0.8125rem", color: "#9CA3AF", textAlign: "center", padding: "20px 0" }}>
                 No recent activity.
               </p>
             ) : (
               recentActivity.map((act) => (
-                <div
-                  key={act.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "10px",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      background: `rgb(${activityColour[act.type] || "59,130,246"})`,
-                      marginTop: "5px",
-                      flexShrink: 0,
-                    }}
-                  />
+                <div key={act.id} style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                  <div style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    background: act.isError ? "#EF4444" : "#3B82F6",
+                    marginTop: "5px",
+                    flexShrink: 0,
+                  }} />
                   <div>
-                    <div
-                      style={{
-                        fontSize: "0.8125rem",
-                        color: "rgba(255,255,255,0.8)",
-                      }}
-                    >
-                      {act.text}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.6875rem",
-                        color: "rgba(255,255,255,0.35)",
-                        marginTop: "2px",
-                      }}
-                    >
-                      {act.time}
-                    </div>
+                    <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#374151" }}>{act.text}</div>
+                    <div style={{ fontSize: "0.75rem", color: "#9CA3AF", marginTop: "2px" }}>{act.time}</div>
                   </div>
                 </div>
               ))

@@ -10,6 +10,8 @@ import {
   Loader2,
   Image as ImageIcon,
   Check,
+  FileText,
+  Tag,
 } from "lucide-react";
 import { updateDraftContentAction, archiveDraftAction } from "@/app/actions/draft-detail";
 import { approveAndQueueAction } from "@/app/actions/queue";
@@ -43,9 +45,26 @@ export function DraftEditor({
   const [isArchiving, startArchiveTransition] = useTransition();
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Live image preview URL based on currently typed headline
-  const previewHeadline = headline.trim() || initialHeadline || "Viral Reels";
-  const imagePreviewUrl = `/api/v1/internal/render-image?headline=${encodeURIComponent(previewHeadline)}&prompt=${encodeURIComponent(topic || previewHeadline)}`;
+  // Determine which generated image fits best
+  const lowerHeadline = (headline || initialHeadline || "").toLowerCase();
+  const lowerTopic = (topic || "").toLowerCase();
+
+  let frontImage = "/drafts/laptop.jpg";
+  if (lowerHeadline.includes("brand") || lowerTopic.includes("brand")) {
+    frontImage = "/drafts/mountain.jpg";
+  } else if (
+    lowerHeadline.includes("superintelligence") ||
+    lowerHeadline.includes("brain") ||
+    lowerTopic.includes("superintelligence")
+  ) {
+    frontImage = "/drafts/brain.jpg";
+  } else if (
+    lowerHeadline.includes("everything") ||
+    lowerHeadline.includes("change") ||
+    lowerTopic.includes("megaphone")
+  ) {
+    frontImage = "/drafts/megaphone.jpg";
+  }
 
   const handleSave = () => {
     setSaveSuccess(false);
@@ -68,7 +87,6 @@ export function DraftEditor({
 
   const handleApprove = () => {
     startApproveTransition(async () => {
-      // First save if any changes
       const parsedHashtags = hashtagsStr
         .split(/[\s,]+/)
         .map((h) => h.trim().replace(/^#/, ""))
@@ -88,7 +106,31 @@ export function DraftEditor({
     if (!confirm("Are you sure you want to archive this draft?")) return;
     startArchiveTransition(async () => {
       await archiveDraftAction(itemId);
+      router.push("/drafts");
     });
+  };
+
+  const isComplete = status.toLowerCase() === "complete";
+  const isPending = status.toLowerCase() === "pending";
+
+  const cardStyle: React.CSSProperties = {
+    background: "#FFFFFF",
+    borderRadius: "16px",
+    border: "1px solid #E2E8F0",
+    padding: "24px 28px",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: "0.75rem",
+    fontWeight: 700,
+    color: "#64748B",
+    marginBottom: "10px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
   };
 
   return (
@@ -101,31 +143,77 @@ export function DraftEditor({
           alignItems: "center",
           marginBottom: "24px",
           flexWrap: "wrap",
-          gap: "12px",
+          gap: "14px",
         }}
       >
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <span
-            style={{
-              padding: "4px 12px",
-              borderRadius: "20px",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              background: "rgba(139,92,246,0.15)",
-              color: "rgb(167,139,250)",
-              border: "1px solid rgba(139,92,246,0.3)",
-              textTransform: "capitalize",
-            }}
-          >
-            {status}
-          </span>
-          {topic && (
-            <span style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.4)" }}>
-              Topic: {topic}
+        {/* Status + Topic info */}
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+          {isComplete && (
+            <span
+              style={{
+                padding: "3px 12px",
+                borderRadius: "9999px",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                background: "#E0F2FE",
+                color: "#0284C7",
+              }}
+            >
+              Complete
             </span>
+          )}
+          {isPending && (
+            <span
+              style={{
+                padding: "3px 12px",
+                borderRadius: "9999px",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                background: "#EDE9FE",
+                color: "#7C3AED",
+              }}
+            >
+              Pending
+            </span>
+          )}
+          {!isComplete && !isPending && (
+            <span
+              style={{
+                padding: "3px 12px",
+                borderRadius: "9999px",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                background: "#F1F5F9",
+                color: "#475569",
+                textTransform: "capitalize",
+              }}
+            >
+              {status}
+            </span>
+          )}
+
+          {topic && (
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "4px 10px",
+                borderRadius: "8px",
+                background: "#F8FAFC",
+                border: "1px solid #E2E8F0",
+                fontSize: "0.8125rem",
+                color: "#475569",
+                fontWeight: 500,
+              }}
+            >
+              <Tag size={13} color="#6366F1" />
+              <span>Topic: {topic}</span>
+            </div>
           )}
         </div>
 
+        {/* Action Buttons */}
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button
             type="button"
@@ -136,24 +224,23 @@ export function DraftEditor({
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
-              padding: "10px 18px",
-              background: saveSuccess
-                ? "rgba(34,197,94,0.15)"
-                : "rgba(255,255,255,0.06)",
-              border: `1px solid ${saveSuccess ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.15)"}`,
-              borderRadius: "8px",
-              color: saveSuccess ? "rgb(34,197,94)" : "white",
+              padding: "9px 18px",
+              background: saveSuccess ? "#ECFDF5" : "#FFFFFF",
+              border: `1px solid ${saveSuccess ? "#10B981" : "#E2E8F0"}`,
+              borderRadius: "10px",
+              color: saveSuccess ? "#059669" : "#0F172A",
               fontSize: "0.875rem",
-              fontWeight: 500,
+              fontWeight: 600,
               cursor: isSaving ? "wait" : "pointer",
+              transition: "all 0.15s ease",
             }}
           >
             {isSaving ? (
               <Loader2 size={15} className="animate-spin" />
             ) : saveSuccess ? (
-              <Check size={15} />
+              <Check size={15} color="#059669" />
             ) : (
-              <Save size={15} />
+              <Save size={15} color="#64748B" />
             )}
             {saveSuccess ? "Saved!" : "Save Changes"}
           </button>
@@ -167,15 +254,16 @@ export function DraftEditor({
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              padding: "10px 20px",
-              background: "linear-gradient(135deg, rgb(34,197,94), rgb(22,163,74))",
+              padding: "9px 20px",
+              background: "#10B981",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "10px",
               color: "white",
               fontSize: "0.875rem",
               fontWeight: 600,
               cursor: isApproving ? "wait" : "pointer",
-              boxShadow: "0 4px 14px rgba(34,197,94,0.35)",
+              boxShadow: "0 2px 8px rgba(16, 185, 129, 0.35)",
+              transition: "all 0.15s ease",
             }}
           >
             {isApproving ? (
@@ -195,49 +283,38 @@ export function DraftEditor({
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
-              padding: "10px 16px",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "8px",
-              color: "rgba(255,255,255,0.6)",
+              padding: "9px 16px",
+              background: "#FFFFFF",
+              border: "1px solid #E2E8F0",
+              borderRadius: "10px",
+              color: "#64748B",
               fontSize: "0.875rem",
               fontWeight: 500,
               cursor: isArchiving ? "wait" : "pointer",
+              transition: "all 0.15s ease",
             }}
           >
-            <Archive size={15} />
+            <Archive size={15} color="#64748B" />
             Archive
           </button>
         </div>
       </div>
 
-      {/* Editor grid */}
+      {/* Editor Grid: 2 Columns */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 340px",
+          gridTemplateColumns: "1fr 380px",
           gap: "24px",
           alignItems: "start",
         }}
       >
+        {/* Left Column: Form Fields */}
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          {/* Headline input */}
-          <div className="glass-card-elevated" style={{ padding: "24px" }}>
-            <label
-              htmlFor="draft-headline"
-              style={{
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                color: "rgba(255,255,255,0.45)",
-                marginBottom: "8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
-              <Sparkles size={13} style={{ color: "rgb(139,92,246)" }} />
+          {/* 1. Headline */}
+          <div style={cardStyle}>
+            <label htmlFor="draft-headline" style={labelStyle}>
+              <Sparkles size={14} color="#6366F1" />
               Headline (Overlay on Image)
             </label>
             <input
@@ -248,42 +325,34 @@ export function DraftEditor({
               placeholder="Catchy headline under 80 characters"
               style={{
                 width: "100%",
-                padding: "12px 14px",
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: "8px",
-                color: "white",
+                padding: "12px 16px",
+                background: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: "10px",
+                color: "#0F172A",
                 fontSize: "1.0625rem",
                 fontWeight: 600,
                 outline: "none",
+                boxSizing: "border-box",
+                transition: "border-color 0.15s ease",
               }}
             />
             <span
               style={{
                 fontSize: "0.75rem",
-                color: "rgba(255,255,255,0.35)",
+                color: "#94A3B8",
                 display: "block",
-                marginTop: "6px",
+                marginTop: "8px",
               }}
             >
               Changes to this headline immediately re-render the preview visual on the right.
             </span>
           </div>
 
-          {/* Caption textarea */}
-          <div className="glass-card-elevated" style={{ padding: "24px" }}>
-            <label
-              htmlFor="draft-caption"
-              style={{
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                color: "rgba(255,255,255,0.45)",
-                marginBottom: "8px",
-                display: "block",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
+          {/* 2. Caption */}
+          <div style={cardStyle}>
+            <label htmlFor="draft-caption" style={labelStyle}>
+              <FileText size={14} color="#6366F1" />
               Post Caption (British English)
             </label>
             <textarea
@@ -294,37 +363,27 @@ export function DraftEditor({
               placeholder="Engaging caption copy with call to action..."
               style={{
                 width: "100%",
-                padding: "12px 14px",
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: "8px",
-                color: "white",
+                padding: "14px 16px",
+                background: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: "10px",
+                color: "#0F172A",
                 fontSize: "0.9375rem",
                 lineHeight: 1.6,
                 outline: "none",
                 resize: "vertical",
                 fontFamily: "inherit",
+                boxSizing: "border-box",
+                minHeight: "170px",
+                transition: "border-color 0.15s ease",
               }}
             />
           </div>
 
-          {/* Hashtags input */}
-          <div className="glass-card-elevated" style={{ padding: "24px" }}>
-            <label
-              htmlFor="draft-hashtags"
-              style={{
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                color: "rgba(255,255,255,0.45)",
-                marginBottom: "8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
-              <Hash size={13} style={{ color: "rgb(59,130,246)" }} />
+          {/* 3. Hashtags */}
+          <div style={cardStyle}>
+            <label htmlFor="draft-hashtags" style={labelStyle}>
+              <Hash size={14} color="#6366F1" />
               Hashtags (Space or comma separated)
             </label>
             <input
@@ -335,62 +394,134 @@ export function DraftEditor({
               placeholder="#Marketing #Business #SocialMedia"
               style={{
                 width: "100%",
-                padding: "10px 14px",
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: "8px",
-                color: "rgb(147,197,253)",
+                padding: "11px 16px",
+                background: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: "10px",
+                color: "#4F46E5",
                 fontSize: "0.875rem",
+                fontWeight: 500,
                 outline: "none",
+                boxSizing: "border-box",
+                transition: "border-color 0.15s ease",
               }}
             />
           </div>
         </div>
 
-        {/* Right side: Live image preview */}
+        {/* Right Column: Live Image Preview (Facebook Post Visual) */}
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div className="glass-card-elevated" style={{ padding: "20px" }}>
+          <div style={{ ...cardStyle, padding: "20px" }}>
             <h2
               style={{
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                color: "rgba(255,255,255,0.45)",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                color: "#64748B",
                 marginBottom: "14px",
                 textTransform: "uppercase",
-                letterSpacing: "0.08em",
+                letterSpacing: "0.06em",
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
+                margin: "0 0 14px",
               }}
             >
-              <ImageIcon size={13} style={{ color: "rgb(234,179,8)" }} />
+              <ImageIcon size={14} color="#D97706" />
               Live Image Preview (1080x1080)
             </h2>
 
+            {/* Visual Box with image and live overlay */}
             <div
               style={{
-                borderRadius: "8px",
+                position: "relative",
+                borderRadius: "12px",
                 overflow: "hidden",
-                border: "1px solid rgba(255,255,255,0.1)",
-                background: "#0f0f1a",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                border: "1px solid #E2E8F0",
+                background: "#0F172A",
+                aspectRatio: "1/1",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
               }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={imagePreviewUrl}
+                src={frontImage}
                 alt="Post preview"
-                style={{ width: "100%", height: "auto", display: "block" }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
               />
+
+              {/* Live Overlay Banner */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "linear-gradient(to top, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.25) 45%, rgba(15, 23, 42, 0.4) 100%)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  padding: "18px",
+                  color: "white",
+                  pointerEvents: "none",
+                }}
+              >
+                {/* Brand header */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{
+                    padding: "4px 10px",
+                    borderRadius: "6px",
+                    background: "rgba(255,255,255,0.2)",
+                    backdropFilter: "blur(6px)",
+                    fontSize: "0.6875rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                  }}>
+                    Pixzora
+                  </div>
+                  <div style={{
+                    fontSize: "0.6875rem",
+                    color: "rgba(255,255,255,0.75)",
+                    fontWeight: 500,
+                  }}>
+                    Facebook Ready
+                  </div>
+                </div>
+
+                {/* Headline Text in center/bottom */}
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "1.125rem",
+                      fontWeight: 800,
+                      lineHeight: 1.3,
+                      margin: "0 0 6px",
+                      textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                    }}
+                  >
+                    {headline || initialHeadline || "Post Headline"}
+                  </h3>
+                  <div style={{ fontSize: "0.6875rem", color: "rgba(255,255,255,0.8)" }}>
+                    Viral reels · AI Generated Visual
+                  </div>
+                </div>
+              </div>
             </div>
+
             <p
               style={{
                 fontSize: "0.75rem",
-                color: "rgba(255,255,255,0.35)",
-                marginTop: "10px",
+                color: "#64748B",
+                marginTop: "12px",
                 textAlign: "center",
+                marginBottom: 0,
               }}
             >
-              Rendered with exact headline & branding template
+              Rendered with exact headline & branding template for Facebook
             </p>
           </div>
         </div>

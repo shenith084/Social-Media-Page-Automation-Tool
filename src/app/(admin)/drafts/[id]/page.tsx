@@ -33,21 +33,31 @@ export default async function DraftDetailPage({
   const { item, topic } = items[0];
 
   return (
-    <div style={{ padding: "32px", maxWidth: "1050px" }} className="animate-fade-in">
-      <Link
-        href="/drafts"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "6px",
-          color: "rgba(255,255,255,0.5)",
-          textDecoration: "none",
-          fontSize: "0.875rem",
-          marginBottom: "24px",
-        }}
-      >
-        <ArrowLeft size={16} /> Back to Draft Library
-      </Link>
+    <div style={{ padding: "26px 36px 40px", maxWidth: "1280px" }}>
+      {/* Back button */}
+      <div style={{ marginBottom: "20px" }}>
+        <Link
+          href="/drafts"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            color: "#4F46E5",
+            textDecoration: "none",
+            fontSize: "0.875rem",
+            fontWeight: 600,
+            padding: "6px 12px",
+            borderRadius: "8px",
+            background: "white",
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <ArrowLeft size={16} />
+          Back to Draft Library
+        </Link>
+      </div>
 
       <DraftEditor
         itemId={item.id}
