@@ -1,10 +1,9 @@
-import { Metadata } from "next";
+﻿import { Metadata } from "next";
 import {
   ListOrdered,
   CheckCircle2,
   AlertTriangle,
   Clock,
-  Send,
   Sparkles,
 } from "lucide-react";
 import { db } from "@/lib/db";
@@ -21,7 +20,7 @@ import { desc, asc, eq, sql, gt } from "drizzle-orm";
 import { format, formatDistanceToNow } from "date-fns";
 import { ManualDispatchButton } from "@/components/admin/dispatch-button";
 
-export const metadata: Metadata = { title: "Dashboard â€” Pixzora Social" };
+export const metadata: Metadata = { title: "Dashboard | Pixzora Social" };
 export const dynamic = "force-dynamic";
 
 const statusBadgeMap: Record<string, string> = {
@@ -127,18 +126,38 @@ export default async function DashboardPage() {
   const schedulerLabel = isSchedulerRunning ? "Running" : "Standing By (1-min cron)";
 
   return (
-    <div style={{ padding: "32px 36px", minHeight: "100dvh", background: "#F3F4F6", color: "#111827" }}>
+    <div className="admin-page-container">
       {/* Page Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "28px", flexWrap: "wrap", gap: "14px" }}>
+      <div
+        className="admin-page-header"
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          marginBottom: "24px",
+          gap: "14px",
+          flexWrap: "wrap",
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: "1.875rem", fontWeight: 700, color: "#111827", marginBottom: "4px", lineHeight: 1.2 }}>
+          <h1
+            style={{
+              fontSize: "1.75rem",
+              fontWeight: 700,
+              color: "#0F172A",
+              marginBottom: "4px",
+              lineHeight: 1.2,
+              letterSpacing: "-0.025em",
+            }}
+          >
             Dashboard
           </h1>
-          <p style={{ fontSize: "0.875rem", color: "#6B7280", fontWeight: 400 }}>
+          <p style={{ fontSize: "0.875rem", color: "#64748B", fontWeight: 400, margin: 0 }}>
             {format(new Date(), "EEEE, d MMMM yyyy")}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+
+        <div className="admin-header-actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <ManualDispatchButton />
           <a
             href="/generate"
@@ -149,12 +168,12 @@ export default async function DashboardPage() {
               gap: "7px",
               padding: "9px 18px",
               background: "linear-gradient(135deg, #7C3AED, #6366F1)",
-              borderRadius: "8px",
+              borderRadius: "10px",
               color: "white",
               textDecoration: "none",
               fontSize: "0.875rem",
               fontWeight: 600,
-              boxShadow: "0 1px 3px rgba(99,102,241,0.3)",
+              boxShadow: "0 2px 6px rgba(99,102,241,0.25)",
               transition: "opacity 0.15s ease",
             }}
           >
@@ -165,78 +184,100 @@ export default async function DashboardPage() {
       </div>
 
       {/* Facebook Status Banner */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        padding: "12px 20px",
-        background: "white",
-        borderRadius: "10px",
-        border: "1px solid #E5E7EB",
-        marginBottom: "24px",
-        flexWrap: "wrap",
-      }}>
-        {/* Facebook icon */}
-        <div style={{
-          width: "36px",
-          height: "36px",
-          borderRadius: "50%",
-          background: "#1877F2",
+      <div
+        className="status-banner-responsive"
+        style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-          </svg>
+          gap: "14px",
+          padding: "14px 20px",
+          background: "#FFFFFF",
+          borderRadius: "14px",
+          border: "1px solid #E2E8F0",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+          marginBottom: "24px",
+          flexWrap: "wrap",
+        }}
+      >
+        {/* Facebook icon & Page name */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <div
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "10px",
+              background: "#1877F2",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+            </svg>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "0.875rem", color: "#64748B", fontWeight: 500 }}>
+              Page:
+            </span>
+            <span style={{ fontSize: "0.9375rem", fontWeight: 700, color: "#0F172A" }}>
+              {page?.name ?? "Viral reels"}
+            </span>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "3px 8px",
+                borderRadius: "999px",
+                background: isConnected ? "#ECFDF5" : "#FEF2F2",
+                color: isConnected ? "#047857" : "#B91C1C",
+                border: `1px solid ${isConnected ? "#A7F3D0" : "#FECACA"}`,
+                fontSize: "0.75rem",
+                fontWeight: 600,
+              }}
+            >
+              <span
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  background: isConnected ? "#10B981" : "#EF4444",
+                }}
+              />
+              {isConnected ? "Connected" : "Disconnected"}
+            </span>
+          </div>
         </div>
+
+        <div className="banner-divider" style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
+
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ fontSize: "0.875rem", color: "#374151", fontWeight: 500 }}>
-            Facebook Page:
-          </span>
-          <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "#111827" }}>
-            {page?.name ?? "Viral reels"}
-          </span>
-          <span style={{
-            padding: "2px 8px",
-            borderRadius: "999px",
-            background: "#DCFCE7",
-            color: "#16A34A",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-          }}>
-            {isConnected ? "Connected" : "Disconnected"}
-          </span>
-        </div>
-        <div style={{ width: "1px", height: "20px", background: "#E5E7EB" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ fontSize: "0.8125rem", color: "#6B7280" }}>Token:</span>
-          <span style={{ fontSize: "0.8125rem", color: "#374151", fontWeight: 500 }}>
+          <span style={{ fontSize: "0.8125rem", color: "#64748B" }}>Token:</span>
+          <span style={{ fontSize: "0.8125rem", color: "#0F172A", fontWeight: 600 }}>
             {tokenExpiresAt ? format(new Date(tokenExpiresAt), "d MMM yyyy") : "Never Expires"}
           </span>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "7px" }}>
-          <div style={{
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            background: isSchedulerRunning ? "#22C55E" : "#F59E0B",
-            flexShrink: 0,
-          }} />
-          <span style={{ fontSize: "0.8125rem", color: "#6B7280" }}>
-            Scheduler: <strong style={{ color: "#374151" }}>{schedulerLabel}</strong>
+
+        <div className="banner-right" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "7px" }}>
+          <div
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background: isSchedulerRunning ? "#10B981" : "#F59E0B",
+              flexShrink: 0,
+            }}
+          />
+          <span style={{ fontSize: "0.8125rem", color: "#64748B" }}>
+            Scheduler: <strong style={{ color: "#0F172A" }}>{schedulerLabel}</strong>
           </span>
         </div>
       </div>
 
       {/* Stat Cards */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(4, 1fr)",
-        gap: "16px",
-        marginBottom: "24px",
-      }}>
+      <div className="responsive-grid-4" style={{ marginBottom: "24px" }}>
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -244,34 +285,51 @@ export default async function DashboardPage() {
               key={stat.id}
               id={stat.id}
               style={{
-                background: "white",
-                borderRadius: "10px",
-                border: `1px solid ${stat.border}`,
+                background: "#FFFFFF",
+                borderRadius: "14px",
+                border: "1px solid #E2E8F0",
                 padding: "20px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-                <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#6B7280" }}>
+                <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#64748B" }}>
                   {stat.label}
                 </span>
-                <div style={{
-                  width: "34px",
-                  height: "34px",
-                  borderRadius: "8px",
-                  background: stat.iconBg,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
+                <div
+                  style={{
+                    width: "34px",
+                    height: "34px",
+                    borderRadius: "10px",
+                    background: stat.iconBg,
+                    border: `1px solid ${stat.border}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
                   <Icon size={17} color={stat.iconColor} />
                 </div>
               </div>
-              <div style={{ fontSize: "1.875rem", fontWeight: 700, color: "#111827", lineHeight: 1, marginBottom: "4px" }}>
-                {stat.value}
-              </div>
-              <div style={{ fontSize: "0.8125rem", color: "#9CA3AF" }}>
-                {stat.subValue}
+              <div>
+                <div
+                  style={{
+                    fontSize: "1.75rem",
+                    fontWeight: 700,
+                    color: "#0F172A",
+                    lineHeight: 1,
+                    letterSpacing: "-0.02em",
+                    marginBottom: "6px",
+                  }}
+                >
+                  {stat.value}
+                </div>
+                <div style={{ fontSize: "0.8125rem", color: "#94A3B8" }}>
+                  {stat.subValue}
+                </div>
               </div>
             </div>
           );
@@ -279,50 +337,65 @@ export default async function DashboardPage() {
       </div>
 
       {/* Bottom Two-Column Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "20px", alignItems: "start" }}>
+      <div className="responsive-grid-2">
         {/* Upcoming Posts */}
-        <div style={{
-          background: "white",
-          borderRadius: "10px",
-          border: "1px solid #E5E7EB",
-          padding: "24px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-        }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "6px" }}>
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "16px",
+            border: "1px solid #E2E8F0",
+            padding: "24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "16px", gap: "10px", flexWrap: "wrap" }}>
             <div>
-              <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#111827" }}>Upcoming Posts</h2>
-              <p style={{ fontSize: "0.8125rem", color: "#9CA3AF", marginTop: "2px" }}>
+              <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#0F172A", margin: 0 }}>Upcoming Posts</h2>
+              <p style={{ fontSize: "0.8125rem", color: "#64748B", marginTop: "2px", margin: 0 }}>
                 Next posts scheduled in publishing queue
               </p>
             </div>
-            <a href="/queue" style={{ fontSize: "0.8125rem", color: "#6366F1", fontWeight: 500, textDecoration: "none" }}>
-              View all â†’
+            <a
+              href="/queue"
+              style={{
+                fontSize: "0.8125rem",
+                color: "#6366F1",
+                fontWeight: 600,
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              View all &rarr;
             </a>
           </div>
 
           {activeQueue.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "48px 0", color: "#9CA3AF" }}>
-              <div style={{
-                width: "60px",
-                height: "60px",
-                borderRadius: "50%",
-                border: "2px dashed #D1D5DB",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 16px",
-              }}>
-                <Clock size={26} color="#D1D5DB" />
+            <div style={{ textAlign: "center", padding: "48px 0", color: "#94A3B8" }}>
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  border: "2px dashed #CBD5E1",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px",
+                }}
+              >
+                <Clock size={24} color="#94A3B8" />
               </div>
-              <p style={{ fontWeight: 600, color: "#6B7280", marginBottom: "6px", fontSize: "0.9375rem" }}>
+              <p style={{ fontWeight: 600, color: "#0F172A", marginBottom: "4px", fontSize: "0.9375rem" }}>
                 Queue is empty
               </p>
-              <p style={{ fontSize: "0.8125rem", color: "#9CA3AF" }}>
+              <p style={{ fontSize: "0.8125rem", color: "#64748B", margin: 0 }}>
                 Generate drafts and approve them to schedule publication.
               </p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {activeQueue.map((item, idx) => (
                 <div
                   key={item.id}
@@ -332,31 +405,42 @@ export default async function DashboardPage() {
                     alignItems: "center",
                     gap: "12px",
                     padding: "12px 14px",
-                    borderRadius: "8px",
-                    background: "#F9FAFB",
-                    border: "1px solid #F3F4F6",
+                    borderRadius: "10px",
+                    background: "#F8FAFC",
+                    border: "1px solid #F1F5F9",
                   }}
                 >
-                  <div style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "6px",
-                    background: "#EEF2FF",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    color: "#6366F1",
-                    flexShrink: 0,
-                  }}>
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "8px",
+                      background: "#EEF2FF",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      color: "#6366F1",
+                      flexShrink: 0,
+                    }}
+                  >
                     #{idx + 1}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                        color: "#0F172A",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {item.contentVersion?.headline || "Untitled Post"}
                     </div>
-                    <div style={{ fontSize: "0.75rem", color: "#9CA3AF", marginTop: "2px" }}>
+                    <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "2px" }}>
                       {item.scheduledAt ? format(new Date(item.scheduledAt), "EEE d MMM, HH:mm") : "Slot pending"}
                     </div>
                   </div>
@@ -370,35 +454,47 @@ export default async function DashboardPage() {
         </div>
 
         {/* Recent Activity */}
-        <div style={{
-          background: "white",
-          borderRadius: "10px",
-          border: "1px solid #E5E7EB",
-          padding: "24px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-        }}>
-          <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#111827", marginBottom: "4px" }}>Recent Activity</h2>
-          <p style={{ fontSize: "0.8125rem", color: "#9CA3AF", marginBottom: "20px" }}>Latest audit events</p>
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "16px",
+            border: "1px solid #E2E8F0",
+            padding: "24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+          }}
+        >
+          <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "#0F172A", margin: "0 0 4px 0" }}>
+            Recent Activity
+          </h2>
+          <p style={{ fontSize: "0.8125rem", color: "#64748B", margin: "0 0 20px 0" }}>
+            Latest audit events
+          </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {recentActivity.length === 0 ? (
-              <p style={{ fontSize: "0.8125rem", color: "#9CA3AF", textAlign: "center", padding: "20px 0" }}>
+              <p style={{ fontSize: "0.8125rem", color: "#94A3B8", textAlign: "center", padding: "20px 0", margin: 0 }}>
                 No recent activity.
               </p>
             ) : (
               recentActivity.map((act) => (
                 <div key={act.id} style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                  <div style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    background: act.isError ? "#EF4444" : "#3B82F6",
-                    marginTop: "5px",
-                    flexShrink: 0,
-                  }} />
+                  <div
+                    style={{
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      background: act.isError ? "#EF4444" : "#6366F1",
+                      marginTop: "5px",
+                      flexShrink: 0,
+                    }}
+                  />
                   <div>
-                    <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#374151" }}>{act.text}</div>
-                    <div style={{ fontSize: "0.75rem", color: "#9CA3AF", marginTop: "2px" }}>{act.time}</div>
+                    <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#0F172A" }}>
+                      {act.text}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "#94A3B8", marginTop: "2px" }}>
+                      {act.time}
+                    </div>
                   </div>
                 </div>
               ))

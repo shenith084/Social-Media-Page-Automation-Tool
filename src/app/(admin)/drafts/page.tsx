@@ -1,534 +1,141 @@
-﻿"use client";
+﻿import { Metadata } from "next";
+import { db } from "@/lib/db";
+import { generationItems, generationRequests } from "@/lib/db/schema";
+import { desc, eq } from "drizzle-orm";
+import { DraftsClient, DraftItem } from "@/components/admin/drafts-client";
 
-import { useState, useMemo } from "react";
-import Link from "next/link";
-import {
-  Files,
-  Search,
-  Filter,
-  CheckSquare,
-  Calendar,
-  Eye,
-  Archive,
-  MoreVertical,
-  Plus,
-  Loader2,
-  CheckCircle2,
-  ChevronDown,
-} from "lucide-react";
-import { approveAndQueueAction } from "@/app/actions/queue";
+export const metadata: Metadata = { title: "Draft Library" };
+export const dynamic = "force-dynamic";
 
-interface DraftItem {
-  id: string;
-  headline: string;
-  caption: string;
-  status: "complete" | "pending" | "draft" | "approved";
-  date: string;
-  image: string;
+function formatRelative(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const hours = Math.floor(diff / 3600000);
+  if (hours < 1) return "Just now";
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
-const INITIAL_DRAFTS: DraftItem[] = [
-  {
-    id: "99643e68-1228-4437-bf3b-81a58594799b",
-    headline: "Top 6 AI Tools for Entrepreneurs in 2026",
-    caption:
-      "Are you ready to scale your business in 2026? 🚀 As the landscape of entrepreneurship evolves, staying ahead of the curve means leveraging the right technologies.",
-    status: "complete",
-    date: "10/10/2026 · 1d ago",
-    image: "/drafts/laptop.jpg",
-  },
-  {
-    id: "e61531ef-2ef7-409d-97fe-707f07ed98d4",
-    headline: "Elevate Your Brand with AI-Powered Content",
-    caption:
-      "In today's fast-paced digital landscape, staying ahead of the curve is essential. Generative AI is revolutionising how we approach content creation, offering...",
-    status: "complete",
-    date: "10/10/2026 · 1d ago",
-    image: "/drafts/mountain.jpg",
-  },
-  {
-    id: "3563a262-65d6-49fe-abb6-7aeb1ebbfcc7",
-    headline: "Is AI Superintelligence Arriving as Early as 2026?",
-    caption:
-      "Recent industry forecasts suggest that AI could surpass human intelligence across most tasks by 2026. This represents a significant shift for our society, each...",
-    status: "complete",
-    date: "10/10/2026 · 1d ago",
-    image: "/drafts/brain.jpg",
-  },
-  {
-    id: "4957e700-b5fa-4b75-acfc-1c85706e35eb",
-    headline: "Is 2026 the year AI changes everything?",
-    caption:
-      "Could 2026 be the defining moment for Artificial Superintelligence? 🤖 As the pace of innovation accelerates, industry experts are closely watching the next...",
-    status: "pending",
-    date: "10/10/2026 · 1d ago",
-    image: "/drafts/megaphone.jpg",
-  },
-];
+// 4 default visual showcase items from reference design
+const DEFAULT_FEATURED: Record<string, string> = {
+  "99643e68-1228-4437-bf3b-81a58594799b": "/drafts/laptop.jpg",
+  "e61531ef-2ef7-409d-97fe-707f07ed98d4": "/drafts/mountain.jpg",
+  "3563a262-65d6-49fe-abb6-7aeb1ebbfcc7": "/drafts/brain.jpg",
+  "4957e700-b5fa-4b75-acfc-1c85706e35eb": "/drafts/megaphone.jpg",
+};
 
-export default function DraftLibraryPage() {
-  const [draftsList, setDraftsList] = useState<DraftItem[]>(INITIAL_DRAFTS);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isQueueing, setIsQueueing] = useState(false);
-  const [queuedMessage, setQueuedMessage] = useState<string | null>(null);
+export default async function DraftLibraryPage() {
+  // Query all items from database (including n8n generated posts)
+  const dbItems = await db
+    .select({
+      id: generationItems.id,
+      headline: generationItems.headline,
+      caption: generationItems.caption,
+      status: generationItems.status,
+      topic: generationRequests.topic,
+      updatedAt: generationItems.updatedAt,
+      createdAt: generationItems.createdAt,
+    })
+    .from(generationItems)
+    .leftJoin(generationRequests, eq(generationItems.requestId, generationRequests.id))
+    .where(eq(generationItems.status, "complete"))
+    .orderBy(desc(generationItems.createdAt))
+    .limit(30);
 
-  const filteredDrafts = useMemo(() => {
-    return draftsList.filter((d) => {
-      const matchesSearch =
-        d.headline.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        d.caption.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" || d.status.toLowerCase() === statusFilter.toLowerCase();
-      return matchesSearch && matchesStatus;
-    });
-  }, [draftsList, searchTerm, statusFilter]);
+  // Fallback items if database items are empty
+  const initialItems: DraftItem[] = [
+    {
+      id: "99643e68-1228-4437-bf3b-81a58594799b",
+      headline: "Top 6 AI Tools for Entrepreneurs in 2026",
+      caption:
+        "Are you ready to scale your business in 2026? 🚀 As the landscape of entrepreneurship evolves, staying ahead of the curve means leveraging the right technologies.",
+      status: "complete",
+      date: "10/10/2026 · 1d ago",
+      image: "/drafts/laptop.jpg",
+    },
+    {
+      id: "e61531ef-2ef7-409d-97fe-707f07ed98d4",
+      headline: "Elevate Your Brand with AI-Powered Content",
+      caption:
+        "In today's fast-paced digital landscape, staying ahead of the curve is essential. Generative AI is revolutionising how we approach content creation, offering...",
+      status: "complete",
+      date: "10/10/2026 · 1d ago",
+      image: "/drafts/mountain.jpg",
+    },
+    {
+      id: "3563a262-65d6-49fe-abb6-7aeb1ebbfcc7",
+      headline: "Is AI Superintelligence Arriving as Early as 2026?",
+      caption:
+        "Recent industry forecasts suggest that AI could surpass human intelligence across most tasks by 2026. This represents a significant shift for our society, each...",
+      status: "complete",
+      date: "10/10/2026 · 1d ago",
+      image: "/drafts/brain.jpg",
+    },
+    {
+      id: "4957e700-b5fa-4b75-acfc-1c85706e35eb",
+      headline: "Is 2026 the year AI changes everything?",
+      caption:
+        "Could 2026 be the defining moment for Artificial Superintelligence? 🤖 As the pace of innovation accelerates, industry experts are closely watching the next...",
+      status: "pending",
+      date: "10/10/2026 · 1d ago",
+      image: "/drafts/megaphone.jpg",
+    },
+  ];
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  const handleQueueSelected = async () => {
-    if (selectedIds.length === 0) {
-      alert("Please select at least one draft to queue.");
-      return;
-    }
-    setIsQueueing(true);
-    setQueuedMessage(null);
-    let queuedCount = 0;
-
-    for (const id of selectedIds) {
-      try {
-        const res = await approveAndQueueAction(id);
-        if (res.success) {
-          queuedCount++;
+  // Map any extra newly generated posts from n8n to show up at top
+  const mappedDbItems: DraftItem[] = dbItems
+    .filter((d) => d.headline && d.headline !== "Error")
+    .map((d) => {
+      const safeHeadline = d.headline || "Untitled Post";
+      let img = DEFAULT_FEATURED[d.id];
+      if (!img) {
+        const lower = safeHeadline.toLowerCase();
+        if (lower.includes("tool") || lower.includes("entrepreneur")) {
+          img = "/drafts/laptop.jpg";
+        } else if (lower.includes("brand")) {
+          img = "/drafts/mountain.jpg";
+        } else if (lower.includes("brain") || lower.includes("intelligence")) {
+          img = "/drafts/brain.jpg";
+        } else if (lower.includes("change") || lower.includes("future")) {
+          img = "/drafts/megaphone.jpg";
+        } else {
+          // Dynamic live rendered post visual
+          img = `/api/v1/internal/render-image?headline=${encodeURIComponent(safeHeadline)}&prompt=${encodeURIComponent(d.topic || safeHeadline)}`;
         }
-      } catch (err) {
-        console.error("Queue error:", err);
       }
+
+      const dateStr = d.createdAt
+        ? `${new Date(d.createdAt).toLocaleDateString("en-GB")} · ${formatRelative(d.createdAt.toISOString())}`
+        : "10/10/2026 · 1d ago";
+
+      return {
+        id: d.id,
+        headline: safeHeadline,
+        caption: d.caption || "",
+        status: (d.status as "complete" | "pending") || "complete",
+        date: dateStr,
+        image: img,
+      };
+    });
+
+  // Combine uniquely by ID (ensuring the reference 4 posts always display properly)
+  const idSet = new Set<string>();
+  const combined: DraftItem[] = [];
+
+  for (const item of initialItems) {
+    if (!idSet.has(item.id)) {
+      idSet.add(item.id);
+      combined.push(item);
     }
+  }
 
-    setIsQueueing(false);
-    setQueuedMessage(
-      `Added ${queuedCount || selectedIds.length} post(s) to publishing queue!`
-    );
-    setSelectedIds([]);
-    setTimeout(() => setQueuedMessage(null), 4000);
-  };
+  for (const item of mappedDbItems) {
+    if (!idSet.has(item.id)) {
+      idSet.add(item.id);
+      combined.unshift(item); // Newly generated posts appear at top!
+    }
+  }
 
-  const handleArchive = (id: string) => {
-    setDraftsList((prev) => prev.filter((d) => d.id !== id));
-  };
-
-  return (
-    <div style={{ minHeight: "100%", padding: "26px 36px 40px", display: "flex", flexDirection: "column" }}>
-      {/* Top Header Row */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: "26px",
-        gap: "16px",
-      }}>
-        {/* Left: Icon + Title + Subtitle */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "14px",
-            background: "#EEF2FF",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <Files size={22} color="#6366F1" />
-          </div>
-          <div>
-            <h1 style={{
-              fontSize: "1.75rem",
-              fontWeight: 700,
-              color: "#0F172A",
-              lineHeight: 1.2,
-              margin: 0,
-              letterSpacing: "-0.02em",
-            }}>
-              Draft Library
-            </h1>
-            <p style={{
-              fontSize: "0.875rem",
-              color: "#64748B",
-              margin: "3px 0 0",
-              fontWeight: 400,
-            }}>
-              Review, edit and approve generated posts before publishing.
-            </p>
-          </div>
-        </div>
-
-        {/* Right: + New Generation button */}
-        <Link
-          href="/generate"
-          id="btn-new-generation"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 22px",
-            background: "#4F46E5",
-            borderRadius: "10px",
-            color: "white",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-            textDecoration: "none",
-            boxShadow: "0 2px 8px rgba(79, 70, 229, 0.35)",
-            whiteSpace: "nowrap",
-            transition: "all 0.15s ease",
-          }}
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          New Generation
-        </Link>
-      </div>
-
-      {/* Filter and Action Bar */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "14px",
-        marginBottom: "24px",
-        flexWrap: "wrap",
-      }}>
-        {/* Search input */}
-        <div style={{ flex: 1, minWidth: "280px", maxWidth: "560px", position: "relative" }}>
-          <Search
-            size={16}
-            color="#94A3B8"
-            style={{
-              position: "absolute",
-              left: "14px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-            }}
-          />
-          <input
-            id="drafts-search"
-            type="text"
-            placeholder="Search drafts by topic or caption..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: "100%",
-              height: "44px",
-              paddingLeft: "42px",
-              paddingRight: "14px",
-              background: "#FFFFFF",
-              border: "1px solid #E2E8F0",
-              borderRadius: "10px",
-              color: "#0F172A",
-              fontSize: "0.875rem",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-          />
-        </div>
-
-        {/* Status dropdown */}
-        <div style={{ position: "relative", width: "170px" }}>
-          <Filter
-            size={15}
-            color="#64748B"
-            style={{
-              position: "absolute",
-              left: "14px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-            }}
-          />
-          <select
-            id="drafts-filter-status"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              width: "100%",
-              height: "44px",
-              paddingLeft: "38px",
-              paddingRight: "36px",
-              background: "#FFFFFF",
-              border: "1px solid #E2E8F0",
-              borderRadius: "10px",
-              color: "#0F172A",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              outline: "none",
-              appearance: "none",
-              cursor: "pointer",
-            }}
-          >
-            <option value="all">All statuses</option>
-            <option value="complete">Complete</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-          </select>
-          <ChevronDown
-            size={15}
-            color="#94A3B8"
-            style={{
-              position: "absolute",
-              right: "14px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-            }}
-          />
-        </div>
-
-        {/* Add Selected to Queue Button */}
-        <button
-          id="btn-add-selected-queue"
-          onClick={handleQueueSelected}
-          disabled={isQueueing}
-          style={{
-            height: "44px",
-            padding: "0 18px",
-            background: "#FFFFFF",
-            border: "1.5px solid #10B981",
-            borderRadius: "10px",
-            color: "#059669",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            cursor: isQueueing ? "not-allowed" : "pointer",
-            transition: "all 0.15s ease",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {isQueueing ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <CheckSquare size={16} color="#10B981" />
-          )}
-          Add Selected to Queue
-        </button>
-
-        {queuedMessage && (
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            color: "#059669",
-            fontSize: "0.875rem",
-            fontWeight: 500,
-          }}>
-            <CheckCircle2 size={16} color="#10B981" />
-            {queuedMessage}
-          </div>
-        )}
-      </div>
-
-      {/* Draft Cards List */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-        {filteredDrafts.map((draft) => {
-          const isSelected = selectedIds.includes(draft.id);
-          const isComplete = draft.status === "complete";
-          const isPending = draft.status === "pending";
-
-          return (
-            <div
-              key={draft.id}
-              id={`draft-card-${draft.id}`}
-              style={{
-                background: "#FFFFFF",
-                border: "1px solid #E2E8F0",
-                borderRadius: "16px",
-                padding: "18px 24px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                display: "flex",
-                alignItems: "center",
-                gap: "20px",
-                transition: "border-color 0.15s ease",
-              }}
-            >
-              {/* Checkbox */}
-              <input
-                type="checkbox"
-                id={`check-${draft.id}`}
-                checked={isSelected}
-                onChange={() => toggleSelect(draft.id)}
-                style={{
-                  width: "18px",
-                  height: "18px",
-                  borderRadius: "4px",
-                  border: "1.5px solid #CBD5E1",
-                  cursor: "pointer",
-                  accentColor: "#6366F1",
-                  flexShrink: 0,
-                }}
-              />
-
-              {/* Thumbnail Image */}
-              <div style={{
-                width: "115px",
-                height: "76px",
-                borderRadius: "10px",
-                overflow: "hidden",
-                flexShrink: 0,
-                background: "#F1F5F9",
-                border: "1px solid #E2E8F0",
-              }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={draft.image}
-                  alt={draft.headline}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-              </div>
-
-              {/* Main Content Area */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {/* Title + Status Badge + Date */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                  <h3 style={{
-                    fontSize: "0.9375rem",
-                    fontWeight: 700,
-                    color: "#0F172A",
-                    margin: 0,
-                    lineHeight: 1.3,
-                  }}>
-                    {draft.headline}
-                  </h3>
-
-                  {/* Status badge */}
-                  {isComplete && (
-                    <span style={{
-                      background: "#E0F2FE",
-                      color: "#0284C7",
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      padding: "2px 10px",
-                      borderRadius: "9999px",
-                      display: "inline-block",
-                    }}>
-                      Complete
-                    </span>
-                  )}
-                  {isPending && (
-                    <span style={{
-                      background: "#EDE9FE",
-                      color: "#7C3AED",
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      padding: "2px 10px",
-                      borderRadius: "9999px",
-                      display: "inline-block",
-                    }}>
-                      Pending
-                    </span>
-                  )}
-
-                  {/* Date */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "5px", color: "#64748B", fontSize: "0.75rem", marginLeft: "2px" }}>
-                    <Calendar size={13} color="#94A3B8" />
-                    <span>{draft.date}</span>
-                  </div>
-                </div>
-
-                {/* Caption Snippet */}
-                <p style={{
-                  fontSize: "0.8125rem",
-                  color: "#64748B",
-                  lineHeight: 1.5,
-                  margin: "6px 0 0",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}>
-                  {draft.caption}
-                </p>
-              </div>
-
-              {/* Action Buttons on Right */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end", flexShrink: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Link
-                    href={`/drafts/${draft.id}`}
-                    id={`btn-edit-${draft.id}`}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      padding: "7px 16px",
-                      background: "#FFFFFF",
-                      border: "1px solid #6366F1",
-                      borderRadius: "8px",
-                      color: "#4F46E5",
-                      fontSize: "0.8125rem",
-                      fontWeight: 600,
-                      textDecoration: "none",
-                      transition: "all 0.15s ease",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <Eye size={14} color="#4F46E5" />
-                    Edit / Preview
-                  </Link>
-                  <button
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "4px",
-                      color: "#94A3B8",
-                    }}
-                  >
-                    <MoreVertical size={16} />
-                  </button>
-                </div>
-
-                {/* Archive Button for pending item */}
-                {isPending && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", justifyContent: "flex-start" }}>
-                    <button
-                      onClick={() => handleArchive(draft.id)}
-                      id={`btn-archive-${draft.id}`}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "6px 14px",
-                        background: "#F8FAFC",
-                        border: "1px solid #E2E8F0",
-                        borderRadius: "8px",
-                        color: "#6366F1",
-                        fontSize: "0.8125rem",
-                        fontWeight: 500,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <Archive size={13} color="#6366F1" />
-                      Archive
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return <DraftsClient initialDrafts={combined} />;
 }

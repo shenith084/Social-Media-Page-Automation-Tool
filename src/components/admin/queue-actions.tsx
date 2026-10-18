@@ -24,27 +24,28 @@ export function QueueRowActions({ itemId, status, draftId }: Props) {
   };
 
   return (
-    <div style={{ display: "flex", gap: "6px" }}>
+    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
       {draftId && (
         <a
           href={`/drafts/${draftId}`}
           id={`btn-preview-${itemId}`}
           title="Preview draft"
           style={{
-            width: "30px",
-            height: "30px",
-            borderRadius: "6px",
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            color: "rgba(255,255,255,0.5)",
+            width: "32px",
+            height: "32px",
+            borderRadius: "8px",
+            background: "#FFFFFF",
+            border: "1px solid #E2E8F0",
+            color: "#4F46E5",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             textDecoration: "none",
+            transition: "all 0.15s ease",
           }}
         >
-          <Eye size={13} />
+          <Eye size={14} />
         </a>
       )}
       {status === "queued" && (
@@ -54,20 +55,21 @@ export function QueueRowActions({ itemId, status, draftId }: Props) {
           onClick={handleRemove}
           disabled={isPending}
           style={{
-            width: "30px",
-            height: "30px",
-            borderRadius: "6px",
-            background: "rgba(239,68,68,0.08)",
-            border: "1px solid rgba(239,68,68,0.2)",
-            color: "rgba(239,68,68,0.7)",
+            width: "32px",
+            height: "32px",
+            borderRadius: "8px",
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            color: "#EF4444",
             cursor: isPending ? "wait" : "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             opacity: isPending ? 0.5 : 1,
+            transition: "all 0.15s ease",
           }}
         >
-          <Trash2 size={13} />
+          <Trash2 size={14} />
         </button>
       )}
       {status === "needs_review" && (
@@ -75,13 +77,13 @@ export function QueueRowActions({ itemId, status, draftId }: Props) {
           href="/recovery"
           id={`btn-resolve-${itemId}`}
           style={{
-            padding: "5px 10px",
+            padding: "5px 12px",
             borderRadius: "6px",
-            background: "rgba(139,92,246,0.15)",
-            border: "1px solid rgba(139,92,246,0.3)",
-            color: "rgb(167,139,250)",
+            background: "#EDE9FE",
+            border: "1px solid #DDD6FE",
+            color: "#6366F1",
             fontSize: "0.75rem",
-            fontWeight: 500,
+            fontWeight: 600,
             textDecoration: "none",
             whiteSpace: "nowrap",
           }}
@@ -116,24 +118,25 @@ export function QueuePauseButton({ isPaused }: { isPaused: boolean }) {
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: "6px",
-        padding: "10px 16px",
-        background: paused ? "rgba(34,197,94,0.1)" : "rgba(234,179,8,0.1)",
-        border: `1px solid ${paused ? "rgba(34,197,94,0.25)" : "rgba(234,179,8,0.25)"}`,
-        borderRadius: "8px",
-        color: paused ? "rgb(34,197,94)" : "rgb(234,179,8)",
+        gap: "7px",
+        padding: "10px 18px",
+        background: paused ? "#ECFDF5" : "#FFFBEB",
+        border: `1px solid ${paused ? "#10B981" : "#FDE68A"}`,
+        borderRadius: "10px",
+        color: paused ? "#059669" : "#D97706",
         fontSize: "0.875rem",
-        fontWeight: 500,
+        fontWeight: 600,
         cursor: pending ? "wait" : "pointer",
         opacity: pending ? 0.7 : 1,
+        transition: "all 0.15s ease",
       }}
     >
       {pending ? (
-        <Loader2 size={14} className="animate-spin" />
+        <Loader2 size={15} className="animate-spin" />
       ) : paused ? (
-        <Play size={14} />
+        <Play size={15} />
       ) : (
-        <Pause size={14} />
+        <Pause size={15} />
       )}
       {paused ? "Resume Queue" : "Pause Queue"}
     </button>

@@ -86,13 +86,7 @@ export default function GenerateContentPage() {
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
       {/* Top Header Row */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "26px 36px 0",
-        gap: "16px",
-      }}>
+      <div className="generate-header-responsive">
         {/* Left: icon + title + subtitle */}
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <div style={{
@@ -194,7 +188,7 @@ export default function GenerateContentPage() {
       </div>
 
       {/* Main Content Area */}
-      <div style={{ padding: "22px 36px 36px", flex: 1 }}>
+      <div className="generate-body-responsive">
 
         {/* Privacy Notice Banner */}
         <div
@@ -584,3 +578,4 @@ export default function GenerateContentPage() {
     </div>
   );
 }
+

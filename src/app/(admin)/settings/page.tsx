@@ -1,5 +1,5 @@
-import { Metadata } from "next";
-import { Wifi, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+﻿import { Metadata } from "next";
+import { Wifi, CheckCircle2, Clock, CalendarCheck } from "lucide-react";
 import { db } from "@/lib/db";
 import { pages, pageConnections, scheduleSettings, testPosts, pageSettings } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -36,46 +36,109 @@ export default async function SettingsPage() {
   const latestTestPost = recentTestPosts[0];
 
   return (
-    <div style={{ padding: "32px", maxWidth: "800px" }} className="animate-fade-in">
-      <div style={{ marginBottom: "28px" }}>
-        <h1 style={{ fontSize: "1.75rem", fontWeight: 700, marginBottom: "4px" }}>
-          Page & Schedule Settings
-        </h1>
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem" }}>
-          Configure Facebook Page connection, controlled test post proof, and publishing schedule.
-        </p>
+    <div style={{ padding: "26px 36px 40px", maxWidth: "980px" }}>
+      {/* Top Header Row */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: "26px",
+        gap: "16px",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "14px",
+            background: "#EEF2FF",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <CalendarCheck size={24} color="#6366F1" />
+          </div>
+          <div>
+            <h1 style={{
+              fontSize: "1.75rem",
+              fontWeight: 700,
+              color: "#0F172A",
+              lineHeight: 1.2,
+              margin: 0,
+              letterSpacing: "-0.02em",
+            }}>
+              Page & Schedule Settings
+            </h1>
+            <p style={{
+              fontSize: "0.875rem",
+              color: "#64748B",
+              margin: "3px 0 0",
+              fontWeight: 400,
+            }}>
+              Configure Facebook Page connection, controlled test post proof, and publishing schedule.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Facebook Page Connection */}
       <section style={{ marginBottom: "28px" }}>
-        <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
-          <Wifi size={16} style={{ color: "rgb(34,197,94)" }} />
+        <h2 style={{
+          fontSize: "1rem",
+          fontWeight: 700,
+          color: "#0F172A",
+          marginBottom: "14px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}>
+          <Wifi size={17} color="#10B981" />
           Facebook Page Connection
         </h2>
 
-        <div className="glass-card-elevated" style={{ padding: "20px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "16px",
+            border: "1px solid #E2E8F0",
+            padding: "24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "20px" }}>
             <div
               style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "10px",
-                background: "rgba(34,197,94,0.1)",
-                border: "1px solid rgba(34,197,94,0.25)",
+                width: "46px",
+                height: "46px",
+                borderRadius: "12px",
+                background: "#DCFCE7",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                flexShrink: 0,
               }}
             >
-              <CheckCircle2 size={20} style={{ color: "rgb(34,197,94)" }} />
+              <CheckCircle2 size={24} color="#16A34A" />
             </div>
             <div>
-              <div style={{ fontWeight: 600 }}>{activePage?.name || "Connected Facebook Page"}</div>
-              <div style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.45)" }}>
+              <div style={{ fontWeight: 700, fontSize: "1.0625rem", color: "#0F172A" }}>
+                {activePage?.name || "Connected Facebook Page"}
+              </div>
+              <div style={{ fontSize: "0.8125rem", color: "#64748B", marginTop: "2px" }}>
                 Page ID: {activePage?.platformPageId || "Pending"} &bull; Timezone: {pSetting?.timezone || "Europe/London"}
               </div>
             </div>
-            <span className="badge badge-approved" style={{ marginLeft: "auto" }}>
+            <span
+              style={{
+                marginLeft: "auto",
+                background: "#DCFCE7",
+                color: "#16A34A",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                padding: "4px 12px",
+                borderRadius: "9999px",
+              }}
+            >
               {connection?.status || "Connected"}
             </span>
           </div>
@@ -83,27 +146,37 @@ export default async function SettingsPage() {
           {/* Test Post Verification Banner */}
           <div
             style={{
-              padding: "14px",
-              borderRadius: "8px",
-              background: "rgba(139,92,246,0.06)",
-              border: "1px solid rgba(139,92,246,0.2)",
+              padding: "16px",
+              borderRadius: "12px",
+              background: "#EEF2FF",
+              border: "1px solid #E0E7FF",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              gap: "12px",
+              gap: "14px",
             }}
           >
             <div>
-              <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>
+              <div style={{ fontWeight: 700, fontSize: "0.875rem", color: "#1E1B4B" }}>
                 Workflow 1 Setup Proof (Test Post)
               </div>
-              <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)" }}>
+              <div style={{ fontSize: "0.8125rem", color: "#4F46E5", marginTop: "2px" }}>
                 {latestTestPost?.status === "confirmed"
                   ? `Verified on ${new Date(latestTestPost.updatedAt).toLocaleDateString("en-GB")}. Publishing queue is unlocked.`
                   : "Queue requires a successful controlled test post proof before automatic publishing is enabled."}
               </div>
             </div>
-            <span className="badge badge-queued">
+            <span
+              style={{
+                background: "#E0F2FE",
+                color: "#0284C7",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                padding: "4px 12px",
+                borderRadius: "9999px",
+                whiteSpace: "nowrap",
+              }}
+            >
               {latestTestPost?.status === "confirmed" ? "Access Proven" : "Test Required"}
             </span>
           </div>
@@ -112,34 +185,50 @@ export default async function SettingsPage() {
 
       {/* Schedule Configuration */}
       <section style={{ marginBottom: "28px" }}>
-        <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
-          <Clock size={16} style={{ color: "rgb(139,92,246)" }} />
+        <h2 style={{
+          fontSize: "1rem",
+          fontWeight: 700,
+          color: "#0F172A",
+          marginBottom: "14px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}>
+          <Clock size={17} color="#6366F1" />
           Publishing Schedule Rules
         </h2>
 
-        <div className="glass-card-elevated" style={{ padding: "20px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "16px",
+            border: "1px solid #E2E8F0",
+            padding: "24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+          }}
+        >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "22px" }}>
             <div>
-              <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Publishing Mode</span>
-              <div style={{ fontWeight: 600, marginTop: "2px" }}>
+              <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Publishing Mode</span>
+              <div style={{ fontWeight: 700, color: "#0F172A", marginTop: "4px", fontSize: "0.9375rem" }}>
                 {schedule?.mode === "fixed_slots" ? "Fixed Daily Slots" : "Interval Mode"}
               </div>
             </div>
             <div>
-              <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Timezone Authority</span>
-              <div style={{ fontWeight: 600, marginTop: "2px" }}>
+              <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Timezone Authority</span>
+              <div style={{ fontWeight: 700, color: "#0F172A", marginTop: "4px", fontSize: "0.9375rem" }}>
                 {pSetting?.timezone || "Europe/London"} (GMT/BST aware)
               </div>
             </div>
             <div>
-              <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Allowed Days</span>
-              <div style={{ fontWeight: 600, marginTop: "2px" }}>
+              <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Allowed Days</span>
+              <div style={{ fontWeight: 700, color: "#0F172A", marginTop: "4px", fontSize: "0.9375rem" }}>
                 Monday &ndash; Friday (Weekdays)
               </div>
             </div>
             <div>
-              <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Minimum Spacing</span>
-              <div style={{ fontWeight: 600, marginTop: "2px" }}>
+              <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Minimum Spacing</span>
+              <div style={{ fontWeight: 700, color: "#0F172A", marginTop: "4px", fontSize: "0.9375rem" }}>
                 {schedule?.minimumSpacingMinutes || 120} minutes
               </div>
             </div>
@@ -147,11 +236,13 @@ export default async function SettingsPage() {
 
           <div
             style={{
-              padding: "12px",
-              background: "rgba(255,255,255,0.02)",
-              borderRadius: "8px",
+              padding: "14px 16px",
+              background: "#F8FAFC",
+              border: "1px solid #E2E8F0",
+              borderRadius: "10px",
               fontSize: "0.8125rem",
-              color: "rgba(255,255,255,0.5)",
+              color: "#64748B",
+              lineHeight: 1.5,
             }}
           >
             Changes to scheduling parameters preserve existing reservations. To recalculate upcoming unclaimed slots, use the schedule rebuild action.
@@ -161,3 +252,4 @@ export default async function SettingsPage() {
     </div>
   );
 }
+

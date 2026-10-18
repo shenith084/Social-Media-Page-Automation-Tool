@@ -1,5 +1,6 @@
-import { Metadata } from "next";
-import { GripVertical, PlusCircle, Clock } from "lucide-react";
+﻿import { Metadata } from "next";
+import { GripVertical, Plus, Clock, ListOrdered, AlertCircle } from "lucide-react";
+import Link from "next/link";
 
 export const metadata: Metadata = { title: "Publishing Queue" };
 
@@ -10,15 +11,15 @@ import { QueueRowActions, QueuePauseButton } from "@/components/admin/queue-acti
 
 export const dynamic = "force-dynamic";
 
-const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  queued: { label: "Queued", cls: "badge-queued" },
-  publishing: { label: "Publishing…", cls: "badge-publishing" },
-  published: { label: "Published", cls: "badge-published" },
-  retry_pending: { label: "Retry Pending", cls: "badge-retry" },
-  blocked: { label: "Blocked", cls: "badge-blocked" },
-  needs_review: { label: "Needs Review", cls: "badge-needs-review" },
-  skipped: { label: "Skipped", cls: "badge-skipped" },
-  cancelled: { label: "Cancelled", cls: "badge-cancelled" },
+const STATUS_MAP: Record<string, { label: string; bg: string; text: string }> = {
+  queued: { label: "Queued", bg: "#E0F2FE", text: "#0284C7" },
+  publishing: { label: "Publishing...", bg: "#FEF3C7", text: "#D97706" },
+  published: { label: "Published", bg: "#DCFCE7", text: "#16A34A" },
+  retry_pending: { label: "Retry Pending", bg: "#FEF3C7", text: "#D97706" },
+  blocked: { label: "Blocked", bg: "#FEE2E2", text: "#DC2626" },
+  needs_review: { label: "Needs Review", bg: "#EDE9FE", text: "#7C3AED" },
+  skipped: { label: "Skipped", bg: "#F1F5F9", text: "#475569" },
+  cancelled: { label: "Cancelled", bg: "#F1F5F9", text: "#475569" },
 };
 
 export default async function QueuePage() {
@@ -34,7 +35,7 @@ export default async function QueuePage() {
     id: d.queueItem.id,
     draftId: d.queueItem.draftId,
     order: d.queueItem.queueOrder,
-    title: d.contentVersion?.headline || "Untitled",
+    title: d.contentVersion?.headline || "Untitled Post",
     caption: d.contentVersion?.caption || "",
     scheduledAt: d.queueItem.scheduledAt
       ? new Date(d.queueItem.scheduledAt).toLocaleString("en-GB", {
@@ -50,61 +51,184 @@ export default async function QueuePage() {
   const needsReviewCount = QUEUE_ITEMS.filter((i) => i.status === "needs_review").length;
 
   return (
-    <div style={{ padding: "32px", maxWidth: "1100px" }} className="animate-fade-in">
-      {/* Header */}
-      <div style={{ marginBottom: "24px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-        <div>
-          <h1 style={{ fontSize: "1.75rem", fontWeight: 700, marginBottom: "4px" }}>Publishing Queue</h1>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem" }}>
-            Approved posts are assigned times automatically. Europe/London (BST, UTC+1)
-          </p>
+    <div className="admin-page-container">
+      {/* Top Header Row */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: "26px",
+        gap: "16px",
+        flexWrap: "wrap",
+      }}>
+        {/* Left: Icon + Title + Subtitle */}
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "14px",
+            background: "#EEF2FF",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <ListOrdered size={24} color="#6366F1" />
+          </div>
+          <div>
+            <h1 style={{
+              fontSize: "1.75rem",
+              fontWeight: 700,
+              color: "#0F172A",
+              lineHeight: 1.2,
+              margin: 0,
+              letterSpacing: "-0.02em",
+            }}>
+              Publishing Queue
+            </h1>
+            <p style={{
+              fontSize: "0.875rem",
+              color: "#64748B",
+              margin: "3px 0 0",
+              fontWeight: 400,
+            }}>
+              Approved posts are assigned times automatically. Europe/London (BST, UTC+1)
+            </p>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+
+        {/* Right Action Buttons */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <QueuePauseButton isPaused={false} />
-          <a
+          <Link
             href="/generate"
             id="btn-add-to-queue"
             style={{
-              display: "inline-flex", alignItems: "center", gap: "6px",
-              padding: "10px 16px",
-              background: "linear-gradient(135deg, rgb(139,92,246), rgb(109,40,217))",
-              border: "none", borderRadius: "8px", color: "white",
-              fontSize: "0.875rem", fontWeight: 500, cursor: "pointer",
-              textDecoration: "none", boxShadow: "0 4px 14px rgba(139,92,246,0.35)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 22px",
+              background: "#4F46E5",
+              borderRadius: "10px",
+              color: "white",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              textDecoration: "none",
+              boxShadow: "0 2px 8px rgba(79, 70, 229, 0.35)",
+              whiteSpace: "nowrap",
+              transition: "all 0.15s ease",
             }}
           >
-            <PlusCircle size={15} /> New Post
-          </a>
+            <Plus size={16} strokeWidth={2.5} />
+            New Post
+          </Link>
         </div>
       </div>
 
       {/* Needs review alert */}
       {needsReviewCount > 0 && (
-        <div id="alert-needs-review" style={{ display: "flex", gap: "10px", padding: "12px 16px", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: "8px", marginBottom: "20px" }}>
-          <span style={{ fontSize: "0.875rem", color: "rgba(167,139,250,0.9)" }}>
-            ⚠️ {needsReviewCount} post{needsReviewCount > 1 ? "s require" : " requires"} your attention. Visit{" "}
-            <a href="/recovery" style={{ color: "rgb(167,139,250)" }}>Recovery</a> to resolve.
+        <div
+          id="alert-needs-review"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "14px 18px",
+            background: "#EDE9FE",
+            border: "1px solid #DDD6FE",
+            borderRadius: "12px",
+            marginBottom: "22px",
+          }}
+        >
+          <AlertCircle size={18} color="#7C3AED" />
+          <span style={{ fontSize: "0.875rem", color: "#6D28D9", fontWeight: 500 }}>
+            {needsReviewCount} post{needsReviewCount > 1 ? "s require" : " requires"} your attention. Visit{" "}
+            <Link href="/recovery" style={{ color: "#4F46E5", fontWeight: 700, textDecoration: "underline" }}>
+              Recovery
+            </Link>{" "}
+            to resolve.
           </span>
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Main Container */}
       {QUEUE_ITEMS.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px 20px", color: "rgba(255,255,255,0.35)" }}>
-          <Clock size={40} style={{ margin: "0 auto 14px", opacity: 0.3 }} />
-          <p style={{ fontWeight: 500, marginBottom: "6px" }}>Queue is empty</p>
-          <p style={{ fontSize: "0.875rem" }}>Generate and approve drafts to add posts here.</p>
-          <a href="/generate" style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginTop: "20px", padding: "10px 20px", background: "linear-gradient(135deg, rgb(139,92,246), rgb(109,40,217))", borderRadius: "8px", color: "white", fontSize: "0.875rem", fontWeight: 600, textDecoration: "none" }}>
-            <PlusCircle size={15} /> Generate Content
-          </a>
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "16px",
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            padding: "60px 24px",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "50%",
+              background: "#EEF2FF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+            }}
+          >
+            <Clock size={28} color="#6366F1" />
+          </div>
+          <h2 style={{ fontSize: "1.125rem", fontWeight: 700, color: "#0F172A", margin: "0 0 6px" }}>
+            Queue is empty
+          </h2>
+          <p style={{ fontSize: "0.875rem", color: "#64748B", margin: "0 0 24px" }}>
+            Generate and approve drafts to automatically schedule posts here.
+          </p>
+          <Link
+            href="/generate"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "11px 24px",
+              background: "#4F46E5",
+              borderRadius: "10px",
+              color: "white",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              textDecoration: "none",
+              boxShadow: "0 2px 8px rgba(79, 70, 229, 0.35)",
+            }}
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            Generate Content
+          </Link>
         </div>
       ) : (
-        <div className="glass-card-elevated" style={{ overflow: "hidden" }}>
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "16px",
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            overflow: "hidden",
+          }}
+        >
           <table id="queue-table" style={{ width: "100%", borderCollapse: "collapse" }} role="table" aria-label="Publishing queue">
             <thead>
-              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
                 {["#", "Post", "Scheduled (UK local)", "Status", "Approved by", "Actions"].map((h, i) => (
-                  <th key={h} style={{ padding: "12px 16px", textAlign: i === 0 ? "center" : "left", fontSize: "0.75rem", fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                  <th
+                    key={h}
+                    style={{
+                      padding: "12px 18px",
+                      textAlign: i === 0 ? "center" : "left",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      color: "#64748B",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                    }}
+                  >
                     {h}
                   </th>
                 ))}
@@ -112,41 +236,62 @@ export default async function QueuePage() {
             </thead>
             <tbody>
               {QUEUE_ITEMS.map((item, i) => {
-                const { label, cls } = STATUS_MAP[item.status] ?? { label: item.status, cls: "badge-queued" };
+                const { label, bg, text } = STATUS_MAP[item.status] ?? {
+                  label: item.status,
+                  bg: "#F1F5F9",
+                  text: "#475569",
+                };
+
                 return (
                   <tr
                     key={item.id}
                     id={item.id}
                     style={{
-                      borderBottom: i < QUEUE_ITEMS.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
-                      background: item.status === "needs_review" ? "rgba(139,92,246,0.04)" : "transparent",
+                      borderBottom: i < QUEUE_ITEMS.length - 1 ? "1px solid #F1F5F9" : "none",
+                      background: item.status === "needs_review" ? "#FAF5FF" : "transparent",
                     }}
                   >
-                    <td style={{ padding: "14px 16px", textAlign: "center", width: "60px" }}>
+                    <td style={{ padding: "16px 18px", textAlign: "center", width: "60px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "4px", justifyContent: "center" }}>
-                        <GripVertical size={14} style={{ color: "rgba(255,255,255,0.2)", cursor: "grab" }} />
-                        <span style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.4)" }}>{item.order}</span>
+                        <GripVertical size={14} color="#94A3B8" style={{ cursor: "grab" }} />
+                        <span style={{ fontSize: "0.8125rem", color: "#64748B", fontWeight: 600 }}>{item.order}</span>
                       </div>
                     </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <div style={{ fontWeight: 500, fontSize: "0.875rem", marginBottom: "2px" }}>{item.title}</div>
-                      <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>
-                        {item.caption.length > 70 ? item.caption.slice(0, 67) + "…" : item.caption}
+                    <td style={{ padding: "16px 18px" }}>
+                      <div style={{ fontWeight: 600, fontSize: "0.9375rem", color: "#0F172A", marginBottom: "3px" }}>
+                        {item.title}
+                      </div>
+                      <div style={{ fontSize: "0.8125rem", color: "#64748B", lineHeight: 1.4 }}>
+                        {item.caption.length > 80 ? item.caption.slice(0, 77) + "..." : item.caption}
                       </div>
                     </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <Clock size={13} style={{ color: "rgba(255,255,255,0.3)" }} />
-                        <span style={{ fontSize: "0.875rem" }}>{item.scheduledAt}</span>
+                    <td style={{ padding: "16px 18px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0F172A", fontSize: "0.875rem", fontWeight: 500 }}>
+                        <Clock size={14} color="#6366F1" />
+                        <span>{item.scheduledAt}</span>
                       </div>
                     </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span className={`badge ${cls}`}>{label}</span>
+                    <td style={{ padding: "16px 18px" }}>
+                      <span
+                        style={{
+                          background: bg,
+                          color: text,
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          padding: "3px 10px",
+                          borderRadius: "9999px",
+                          display: "inline-block",
+                        }}
+                      >
+                        {label}
+                      </span>
                     </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.5)" }}>{item.approvedBy}</span>
+                    <td style={{ padding: "16px 18px" }}>
+                      <span style={{ fontSize: "0.8125rem", color: "#64748B", fontWeight: 500 }}>
+                        {item.approvedBy}
+                      </span>
                     </td>
-                    <td style={{ padding: "14px 16px" }}>
+                    <td style={{ padding: "16px 18px" }}>
                       <QueueRowActions itemId={item.id} status={item.status} draftId={item.draftId} />
                     </td>
                   </tr>
@@ -156,11 +301,7 @@ export default async function QueuePage() {
           </table>
         </div>
       )}
-
-      {/* Legend */}
-      <div style={{ marginTop: "20px", padding: "14px 16px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)", fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", lineHeight: 1.6 }}>
-        <strong style={{ color: "rgba(255,255,255,0.5)" }}>How times are assigned:</strong> The system assigns the next available slot based on your schedule settings. Removing a post from the queue cancels publication but keeps the draft.
-      </div>
     </div>
   );
 }
+

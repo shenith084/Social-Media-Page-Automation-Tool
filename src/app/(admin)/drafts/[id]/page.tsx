@@ -33,7 +33,7 @@ export default async function DraftDetailPage({
   const { item, topic } = items[0];
 
   return (
-    <div style={{ padding: "26px 36px 40px", maxWidth: "1280px" }}>
+    <div className="admin-page-container">
       {/* Back button */}
       <div style={{ marginBottom: "20px" }}>
         <Link
@@ -70,3 +70,4 @@ export default async function DraftDetailPage({
     </div>
   );
 }
+

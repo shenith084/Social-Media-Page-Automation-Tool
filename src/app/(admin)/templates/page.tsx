@@ -1,8 +1,7 @@
 ﻿import { Metadata } from "next";
-import { Palette, Bot, Sparkles, Sliders, CheckCircle2 } from "lucide-react";
+import { Palette, Bot, Sliders, CheckCircle2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { templates, aiSettings } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 
 export const metadata: Metadata = { title: "Templates & AI Settings" };
 export const dynamic = "force-dynamic";
@@ -12,66 +11,116 @@ export default async function TemplatesPage() {
   const currentAiSettings = (await db.select().from(aiSettings).limit(1))[0];
 
   return (
-    <div style={{ padding: "32px", maxWidth: "1000px" }} className="animate-fade-in">
-      <div style={{ marginBottom: "28px" }}>
-        <h1 style={{ fontSize: "1.75rem", fontWeight: 700, marginBottom: "4px", display: "flex", alignItems: "center", gap: "10px" }}>
-          <Palette size={26} style={{ color: "rgb(139,92,246)" }} />
-          Templates & AI Settings
-        </h1>
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem" }}>
-          Configure branding visuals, layout templates, and AI generation model adapters.
-        </p>
+    <div className="admin-page-container">
+      {/* Top Header Row */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: "26px",
+        gap: "16px",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "14px",
+            background: "#EEF2FF",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <Palette size={24} color="#6366F1" />
+          </div>
+          <div>
+            <h1 style={{
+              fontSize: "1.75rem",
+              fontWeight: 700,
+              color: "#0F172A",
+              lineHeight: 1.2,
+              margin: 0,
+              letterSpacing: "-0.02em",
+            }}>
+              Templates & AI Settings
+            </h1>
+            <p style={{
+              fontSize: "0.875rem",
+              color: "#64748B",
+              margin: "3px 0 0",
+              fontWeight: 400,
+            }}>
+              Configure branding visuals, layout templates, and AI generation model adapters.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "32px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "26px" }}>
         {/* Template Branding */}
-        <div className="glass-card-elevated" style={{ padding: "24px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "18px" }}>
-            <Palette size={20} style={{ color: "rgb(139,92,246)" }} />
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 600 }}>Active Image Template</h2>
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "16px",
+            border: "1px solid #E2E8F0",
+            padding: "26px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+            <Palette size={20} color="#6366F1" />
+            <h2 style={{ fontSize: "1.0625rem", fontWeight: 700, color: "#0F172A", margin: 0 }}>
+              Active Image Template
+            </h2>
           </div>
 
           {currentTemplates.length > 0 ? (
             <div>
-              <div style={{ marginBottom: "14px" }}>
-                <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Template Name</span>
-                <div style={{ fontWeight: 600, fontSize: "1rem" }}>{currentTemplates[0].name}</div>
+              <div style={{ marginBottom: "16px" }}>
+                <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Template Name</span>
+                <div style={{ fontWeight: 700, fontSize: "1.0625rem", color: "#0F172A", marginTop: "2px" }}>
+                  {currentTemplates[0].name}
+                </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
                 <div>
-                  <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Primary Colour</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Primary Colour</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
                     <div
                       style={{
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "4px",
-                        background: currentTemplates[0].primaryColour || "#8B5CF6",
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "6px",
+                        background: currentTemplates[0].primaryColour || "#4F46E5",
+                        border: "1px solid #E2E8F0",
                       }}
                     />
-                    <span style={{ fontSize: "0.875rem", fontFamily: "monospace" }}>
-                      {currentTemplates[0].primaryColour || "#8B5CF6"}
+                    <span style={{ fontSize: "0.875rem", fontFamily: "monospace", color: "#0F172A", fontWeight: 600 }}>
+                      {currentTemplates[0].primaryColour || "#4F46E5"}
                     </span>
                   </div>
                 </div>
                 <div>
-                  <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Font Family</span>
-                  <div style={{ fontWeight: 500, fontSize: "0.875rem", marginTop: "4px" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Font Family</span>
+                  <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "#0F172A", marginTop: "6px" }}>
                     {currentTemplates[0].fontFamily} (OFL)
                   </div>
                 </div>
               </div>
+
               <div
                 style={{
-                  padding: "12px",
-                  borderRadius: "8px",
-                  background: "rgba(34,197,94,0.08)",
-                  border: "1px solid rgba(34,197,94,0.2)",
+                  padding: "12px 14px",
+                  borderRadius: "10px",
+                  background: "#DCFCE7",
+                  border: "1px solid #BBF7D0",
                   display: "flex",
                   alignItems: "center",
                   gap: "8px",
                   fontSize: "0.8125rem",
-                  color: "rgb(134,239,172)",
+                  color: "#16A34A",
+                  fontWeight: 600,
                 }}
               >
                 <CheckCircle2 size={16} />
@@ -79,53 +128,63 @@ export default async function TemplatesPage() {
               </div>
             </div>
           ) : (
-            <p style={{ color: "rgba(255,255,255,0.4)" }}>No custom templates configured.</p>
+            <p style={{ color: "#64748B", fontSize: "0.875rem" }}>No custom templates configured.</p>
           )}
         </div>
 
         {/* AI Provider Config */}
-        <div className="glass-card-elevated" style={{ padding: "24px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "18px" }}>
-            <Bot size={20} style={{ color: "rgb(59,130,246)" }} />
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 600 }}>AI Provider Adapters</h2>
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "16px",
+            border: "1px solid #E2E8F0",
+            padding: "26px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+            <Bot size={20} color="#6366F1" />
+            <h2 style={{ fontSize: "1.0625rem", fontWeight: 700, color: "#0F172A", margin: 0 }}>
+              AI Provider Adapters
+            </h2>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Text Generation</span>
-                <span className="badge badge-approved" style={{ fontSize: "0.7rem" }}>Active</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ padding: "12px 16px", background: "#F8FAFC", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" }}>
+                <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Text Generation</span>
+                <span style={{ background: "#DCFCE7", color: "#16A34A", fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "9999px" }}>Active</span>
               </div>
-              <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>
+              <div style={{ fontWeight: 700, fontSize: "0.9375rem", color: "#0F172A" }}>
                 {currentAiSettings?.textProvider || "Google Gemini API"}
               </div>
-              <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)" }}>
-                Model: {currentAiSettings?.textModel || "gemini-1.5-flash"} (Structured JSON mode)
+              <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "2px" }}>
+                Model: {currentAiSettings?.textModel || "gemini-3-flash-preview"} (Structured JSON mode)
               </div>
             </div>
 
-            <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Image Generation</span>
-                <span className="badge badge-approved" style={{ fontSize: "0.7rem" }}>Active</span>
+            <div style={{ padding: "12px 16px", background: "#F8FAFC", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" }}>
+                <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Image Generation</span>
+                <span style={{ background: "#DCFCE7", color: "#16A34A", fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "9999px" }}>Active</span>
               </div>
-              <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>
+              <div style={{ fontWeight: 700, fontSize: "0.9375rem", color: "#0F172A" }}>
                 {currentAiSettings?.imageProvider || "Cloudflare Workers AI"}
               </div>
-              <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)" }}>
+              <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "2px" }}>
                 Model: FLUX.1 schnell (Daily free allowance)
               </div>
             </div>
 
-            <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Image Fallback</span>
-                <span className="badge badge-queued" style={{ fontSize: "0.7rem" }}>Class A</span>
+            <div style={{ padding: "12px 16px", background: "#F8FAFC", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" }}>
+                <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Image Fallback</span>
+                <span style={{ background: "#E0F2FE", color: "#0284C7", fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "9999px" }}>Class A</span>
               </div>
-              <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>
+              <div style={{ fontWeight: 700, fontSize: "0.9375rem", color: "#0F172A" }}>
                 {currentAiSettings?.imageFallbackProvider || "Local Sharp Gradient / Pattern"}
               </div>
-              <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)" }}>
+              <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "2px" }}>
                 Zero-cost failover if AI image quota is reached
               </div>
             </div>
@@ -134,37 +193,42 @@ export default async function TemplatesPage() {
       </div>
 
       {/* Quota Limits Policy */}
-      <div className="glass-card-elevated" style={{ padding: "24px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
-          <Sliders size={20} style={{ color: "rgb(234,179,8)" }} />
-          <h2 style={{ fontSize: "1.1rem", fontWeight: 600 }}>Free-Tier Guardrails & Concurrency</h2>
+      <div
+        style={{
+          background: "#FFFFFF",
+          borderRadius: "16px",
+          border: "1px solid #E2E8F0",
+          padding: "26px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+          <Sliders size={20} color="#D97706" />
+          <h2 style={{ fontSize: "1.0625rem", fontWeight: 700, color: "#0F172A", margin: 0 }}>
+            Free-Tier Guardrails & Concurrency
+          </h2>
         </div>
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem", marginBottom: "20px" }}>
+        <p style={{ color: "#64748B", fontSize: "0.875rem", margin: "0 0 20px" }}>
           Limits configured in accordance with the Free-Tier Technology Policy (Section 2).
         </p>
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-          <div style={{ padding: "16px", background: "rgba(255,255,255,0.02)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Daily Cap</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: 700, marginTop: "4px" }}>
+          <div style={{ padding: "16px 20px", background: "#F8FAFC", borderRadius: "12px", border: "1px solid #E2E8F0" }}>
+            <div style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Daily Cap</div>
+            <div style={{ fontSize: "1.375rem", fontWeight: 800, color: "#0F172A", marginTop: "4px" }}>
               {currentAiSettings?.dailyGenerationCap || 50} posts
             </div>
           </div>
-          <div style={{ padding: "16px", background: "rgba(255,255,255,0.02)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Monthly Cap</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: 700, marginTop: "4px" }}>
+          <div style={{ padding: "16px 20px", background: "#F8FAFC", borderRadius: "12px", border: "1px solid #E2E8F0" }}>
+            <div style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Monthly Cap</div>
+            <div style={{ fontSize: "1.375rem", fontWeight: 800, color: "#0F172A", marginTop: "4px" }}>
               {currentAiSettings?.monthlyGenerationCap || 1000} posts
             </div>
           </div>
-          <div style={{ padding: "16px", background: "rgba(255,255,255,0.02)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Max Concurrency</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: 700, marginTop: "4px" }}>
-              {currentAiSettings?.maxConcurrentGenerations || 3} workers
-            </div>
-          </div>
-          <div style={{ padding: "16px", background: "rgba(255,255,255,0.02)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Max Retries</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: 700, marginTop: "4px" }}>
-              {currentAiSettings?.maxRetries || 3} attempts
+          <div style={{ padding: "16px 20px", background: "#F8FAFC", borderRadius: "12px", border: "1px solid #E2E8F0" }}>
+            <div style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600, textTransform: "uppercase" }}>Max Concurrency</div>
+            <div style={{ fontSize: "1.375rem", fontWeight: 800, color: "#0F172A", marginTop: "4px" }}>
+              1 active job
             </div>
           </div>
         </div>
@@ -172,3 +236,4 @@ export default async function TemplatesPage() {
     </div>
   );
 }
+

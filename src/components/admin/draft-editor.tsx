@@ -301,14 +301,7 @@ export function DraftEditor({
       </div>
 
       {/* Editor Grid: 2 Columns */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 380px",
-          gap: "24px",
-          alignItems: "start",
-        }}
-      >
+      <div className="draft-editor-split">
         {/* Left Column: Form Fields */}
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           {/* 1. Headline */}
@@ -529,3 +522,4 @@ export function DraftEditor({
     </div>
   );
 }
+
