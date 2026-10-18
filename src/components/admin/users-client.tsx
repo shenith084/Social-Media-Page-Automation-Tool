@@ -583,50 +583,56 @@ export function UsersClient({ initialUsers }: Props) {
         </div>
       </div>
 
-      {/* CREATE NEW USER MODAL */}
+      {/* CREATE NEW USER MODAL (SYMMETRIC & PROFESSIONAL) */}
       {isCreateOpen && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(15, 23, 42, 0.55)",
-            backdropFilter: "blur(4px)",
+            background: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(6px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             zIndex: 1000,
-            padding: "20px",
+            padding: "16px",
           }}
           onClick={() => setIsCreateOpen(false)}
         >
           <div
+            className="sleek-modal-box"
             style={{
               background: "#FFFFFF",
               borderRadius: "20px",
               width: "100%",
-              maxWidth: "560px",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              maxWidth: "530px",
+              maxHeight: "min(680px, 92vh)",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 60px -15px rgba(15, 23, 42, 0.35)",
               border: "1px solid #E2E8F0",
+              overflow: "hidden",
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Fixed Header */}
             <div
               style={{
-                padding: "24px 28px",
+                padding: "18px 24px 16px",
                 borderBottom: "1px solid #F1F5F9",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                background: "#FAFAFA",
+                flexShrink: 0,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div
                   style={{
-                    width: "42px",
-                    height: "42px",
-                    borderRadius: "12px",
+                    width: "38px",
+                    height: "38px",
+                    borderRadius: "10px",
                     background: "#EDE9FE",
                     display: "flex",
                     alignItems: "center",
@@ -637,7 +643,7 @@ export function UsersClient({ initialUsers }: Props) {
                   <Plus size={20} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 700, color: "#0F172A" }}>
+                  <h3 style={{ margin: 0, fontSize: "1.0625rem", fontWeight: 700, color: "#0F172A" }}>
                     Create New System User
                   </h3>
                   <p style={{ margin: "2px 0 0", fontSize: "0.8125rem", color: "#64748B" }}>
@@ -647,19 +653,48 @@ export function UsersClient({ initialUsers }: Props) {
               </div>
               <button
                 onClick={() => setIsCreateOpen(false)}
-                style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "4px" }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#94A3B8",
+                  cursor: "pointer",
+                  padding: "6px",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#0F172A";
+                  e.currentTarget.style.background = "#F1F5F9";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#94A3B8";
+                  e.currentTarget.style.background = "transparent";
+                }}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} style={{ padding: "24px 28px" }}>
-              <div style={{ marginBottom: "18px" }}>
-                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "6px" }}>
+            {/* Scrollable Form Body (Compact & Perfectly Balanced) */}
+            <form
+              id="form-create-user"
+              onSubmit={handleCreateSubmit}
+              className="sleek-modal-scroll"
+              style={{
+                padding: "18px 24px",
+                overflowY: "auto",
+                flex: 1,
+              }}
+            >
+              <div style={{ marginBottom: "13px" }}>
+                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "5px" }}>
                   Full Name
                 </label>
                 <div style={{ position: "relative" }}>
-                  <UserIcon size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
+                  <UserIcon size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
                   <input
                     id="input-create-name"
                     type="text"
@@ -667,17 +702,17 @@ export function UsersClient({ initialUsers }: Props) {
                     placeholder="e.g. Sarah Jenkins"
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    style={{ width: "100%", padding: "10px 14px 10px 38px", borderRadius: "10px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", outline: "none" }}
+                    style={{ width: "100%", padding: "8px 14px 8px 36px", borderRadius: "9px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", outline: "none" }}
                   />
                 </div>
               </div>
 
-              <div style={{ marginBottom: "18px" }}>
-                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "6px" }}>
+              <div style={{ marginBottom: "13px" }}>
+                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "5px" }}>
                   Email Address
                 </label>
                 <div style={{ position: "relative" }}>
-                  <Mail size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
+                  <Mail size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
                   <input
                     id="input-create-email"
                     type="email"
@@ -685,36 +720,36 @@ export function UsersClient({ initialUsers }: Props) {
                     placeholder="sarah@pixzora.com"
                     value={createEmail}
                     onChange={(e) => setCreateEmail(e.target.value)}
-                    style={{ width: "100%", padding: "10px 14px 10px 38px", borderRadius: "10px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", outline: "none" }}
+                    style={{ width: "100%", padding: "8px 14px 8px 36px", borderRadius: "9px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", outline: "none" }}
                   />
                 </div>
               </div>
 
-              <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "6px" }}>
+              <div style={{ marginBottom: "13px" }}>
+                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "5px" }}>
                   Initial Password
                 </label>
                 <div style={{ position: "relative" }}>
-                  <Lock size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
+                  <Lock size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
                   <input
                     id="input-create-password"
                     type="text"
                     required
                     value={createPassword}
                     onChange={(e) => setCreatePassword(e.target.value)}
-                    style={{ width: "100%", padding: "10px 14px 10px 38px", borderRadius: "10px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", fontFamily: "monospace", outline: "none" }}
+                    style={{ width: "100%", padding: "8px 14px 8px 36px", borderRadius: "9px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", fontFamily: "monospace", outline: "none" }}
                   />
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "4px" }}>
+                <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "3px" }}>
                   Member will use this password to sign in to Pixzora.
                 </div>
               </div>
 
-              <div style={{ marginBottom: "22px" }}>
-                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "8px" }}>
+              <div style={{ marginBottom: "14px" }}>
+                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "7px" }}>
                   Select System Role
                 </label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px" }}>
                   {[
                     { key: "admin", label: "Admin", desc: "Queue approval & schedules", badge: "Most Common" },
                     { key: "super_admin", label: "Super Admin", desc: "Full system & user access", badge: "Unrestricted" },
@@ -727,55 +762,76 @@ export function UsersClient({ initialUsers }: Props) {
                         key={r.key}
                         onClick={() => handleCreateRoleChange(r.key)}
                         style={{
-                          border: `2px solid ${isSelected ? "#6366F1" : "#E2E8F0"}`,
-                          background: isSelected ? "#EEF2FF" : "#FFFFFF",
-                          borderRadius: "12px",
-                          padding: "12px",
-                          cursor: "pointer",
-                          transition: "all 0.15s ease",
+                          border: '2px solid ' + (isSelected ? '#6366F1' : '#E2E8F0'),
+                          background: isSelected ? '#EEF2FF' : '#FFFFFF',
+                          borderRadius: '10px',
+                          padding: '8px 11px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontWeight: 700, fontSize: "0.875rem", color: isSelected ? "#4338CA" : "#0F172A" }}>
+                          <span style={{ fontWeight: 700, fontSize: "0.8125rem", color: isSelected ? "#4338CA" : "#0F172A" }}>
                             {r.label}
                           </span>
-                          <span style={{ fontSize: "0.6875rem", padding: "2px 6px", borderRadius: "4px", background: isSelected ? "#C7D2FE" : "#F1F5F9", color: isSelected ? "#3730A3" : "#64748B", fontWeight: 600 }}>
+                          <span
+                            style={{
+                              fontSize: "0.6875rem",
+                              padding: "1px 5px",
+                              borderRadius: "4px",
+                              background: isSelected ? "#C7D2FE" : "#F1F5F9",
+                              color: isSelected ? "#3730A3" : "#64748B",
+                              fontWeight: 600,
+                            }}
+                          >
                             {r.badge}
                           </span>
                         </div>
-                        <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "4px" }}>{r.desc}</div>
+                        <div style={{ fontSize: "0.7188rem", color: "#64748B", marginTop: "2px", lineHeight: 1.3 }}>{r.desc}</div>
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "10px", padding: "12px 14px", fontSize: "0.8125rem", color: "#475569", marginBottom: "24px", display: "flex", alignItems: "center", gap: "8px" }}>
-                <Sparkles size={16} style={{ color: "#6366F1", flexShrink: 0 }} />
+              <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "9px", padding: "8px 12px", fontSize: "0.75rem", color: "#475569", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Sparkles size={15} style={{ color: "#6366F1", flexShrink: 0 }} />
                 <span>
-                  Initial permissions will be initialized with standard <strong>{createRole.replace("_", " ")}</strong> presets ({createPerms.length} permissions).
+                  Initial permissions configured with <strong>{createRole.replace("_", " ")}</strong> presets ({createPerms.length} modules).
                 </span>
               </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  style={{ padding: "10px 18px", borderRadius: "10px", background: "#F1F5F9", color: "#475569", border: "none", fontWeight: 600, fontSize: "0.875rem", cursor: "pointer" }}
-                >
-                  Cancel
-                </button>
-                <button
-                  id="btn-submit-create-user"
-                  type="submit"
-                  disabled={isPending}
-                  style={{ padding: "10px 22px", borderRadius: "10px", background: "#4F46E5", color: "white", border: "none", fontWeight: 600, fontSize: "0.875rem", cursor: isPending ? "wait" : "pointer", boxShadow: "0 2px 8px rgba(79, 70, 229, 0.35)", display: "inline-flex", alignItems: "center", gap: "8px" }}
-                >
-                  {isPending && <Loader2 size={16} className="animate-spin" />}
-                  Create System User
-                </button>
-              </div>
             </form>
+
+            {/* Fixed Docked Footer */}
+            <div
+              style={{
+                padding: "14px 24px",
+                borderTop: "1px solid #F1F5F9",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+                background: "#FAFAFA",
+                flexShrink: 0,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsCreateOpen(false)}
+                style={{ padding: "8px 16px", borderRadius: "9px", background: "#FFFFFF", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 600, fontSize: "0.875rem", cursor: "pointer", transition: "background 0.15s" }}
+              >
+                Cancel
+              </button>
+              <button
+                id="btn-submit-create-user"
+                form="form-create-user"
+                type="submit"
+                disabled={isPending}
+                style={{ padding: "8px 20px", borderRadius: "9px", background: "#4F46E5", color: "white", border: "none", fontWeight: 600, fontSize: "0.875rem", cursor: isPending ? "wait" : "pointer", boxShadow: "0 2px 8px rgba(79, 70, 229, 0.35)", display: "inline-flex", alignItems: "center", gap: "8px" }}
+              >
+                {isPending && <Loader2 size={16} className="animate-spin" />}
+                Create System User
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -797,6 +853,7 @@ export function UsersClient({ initialUsers }: Props) {
           onClick={() => setPermModalUser(null)}
         >
           <div
+            className="sleek-modal-box"
             style={{
               background: "#FFFFFF",
               borderRadius: "20px",
@@ -805,7 +862,7 @@ export function UsersClient({ initialUsers }: Props) {
               maxHeight: "92vh",
               display: "flex",
               flexDirection: "column",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              boxShadow: "0 25px 60px -15px rgba(15, 23, 42, 0.35)",
               border: "1px solid #E2E8F0",
               overflow: "hidden",
             }}
@@ -913,6 +970,7 @@ export function UsersClient({ initialUsers }: Props) {
             </div>
 
             <div
+              className="sleek-modal-scroll"
               style={{
                 flex: 1,
                 overflowY: "auto",

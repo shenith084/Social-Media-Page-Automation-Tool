@@ -472,3 +472,38 @@
     padding: 14px 14px 96px !important;
   }
 }
+
+/* Sleek Modal Scrollbar and Symmetry Rules */
+.sleek-modal-box {
+  border-radius: 20px !important;
+  overflow: hidden !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.3), 0 0 0 1px rgba(226, 232, 240, 0.9) !important;
+  position: relative !important;
+}
+
+/* Completely hide native scrollbar tracks to ensure 100% symmetric rounded corners on both left and right sides */
+.sleek-modal-scroll {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+
+.sleek-modal-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
+}
+
+.sleek-modal-scroll::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
+}
+
+.sleek-modal-scroll::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+}
+
