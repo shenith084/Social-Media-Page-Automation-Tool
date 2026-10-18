@@ -16,6 +16,10 @@ export function QueueRowActions({ itemId, status, draftId }: Props) {
   const router = useRouter();
 
   const handleRemove = () => {
+    if (itemId.startsWith("showcase-")) {
+      alert("This is a preview showcase item. Generate and approve your own drafts to manage live queue items.");
+      return;
+    }
     if (!confirm("Remove this post from the queue? The draft will be kept.")) return;
     startTransition(async () => {
       await removeQueueItemAction(itemId);
@@ -23,55 +27,73 @@ export function QueueRowActions({ itemId, status, draftId }: Props) {
     });
   };
 
+  const previewHref = draftId ? `/drafts/${draftId}` : "/drafts";
+
   return (
-    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-      {draftId && (
-        <a
-          href={`/drafts/${draftId}`}
-          id={`btn-preview-${itemId}`}
-          title="Preview draft"
-          style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "8px",
-            background: "#FFFFFF",
-            border: "1px solid #E2E8F0",
-            color: "#4F46E5",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            textDecoration: "none",
-            transition: "all 0.15s ease",
-          }}
-        >
-          <Eye size={14} />
-        </a>
-      )}
-      {status === "queued" && (
-        <button
-          id={`btn-remove-${itemId}`}
-          title="Remove from queue (keeps draft)"
-          onClick={handleRemove}
-          disabled={isPending}
-          style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "8px",
-            background: "#FEF2F2",
-            border: "1px solid #FECACA",
-            color: "#EF4444",
-            cursor: isPending ? "wait" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: isPending ? 0.5 : 1,
-            transition: "all 0.15s ease",
-          }}
-        >
-          <Trash2 size={14} />
-        </button>
-      )}
+    <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: "center" }}>
+      <a
+        href={previewHref}
+        id={`btn-preview-${itemId}`}
+        title="Preview draft"
+        style={{
+          width: "34px",
+          height: "34px",
+          borderRadius: "8px",
+          background: "#FFFFFF",
+          border: "1px solid #E0E7FF",
+          color: "#6366F1",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textDecoration: "none",
+          transition: "all 0.15s ease",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "#6366F1";
+          e.currentTarget.style.background = "#EEF2FF";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "#E0E7FF";
+          e.currentTarget.style.background = "#FFFFFF";
+        }}
+      >
+        <Eye size={15} />
+      </a>
+
+      <button
+        id={`btn-remove-${itemId}`}
+        title="Remove from queue (keeps draft)"
+        onClick={handleRemove}
+        disabled={isPending}
+        style={{
+          width: "34px",
+          height: "34px",
+          borderRadius: "8px",
+          background: "#FEF2F2",
+          border: "1px solid #FECACA",
+          color: "#EF4444",
+          cursor: isPending ? "wait" : "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: isPending ? 0.5 : 1,
+          transition: "all 0.15s ease",
+          boxShadow: "0 1px 2px rgba(239,68,68,0.04)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "#EF4444";
+          e.currentTarget.style.background = "#FEE2E2";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "#FECACA";
+          e.currentTarget.style.background = "#FEF2F2";
+        }}
+      >
+        <Trash2 size={15} />
+      </button>
+
       {status === "needs_review" && (
         <a
           href="/recovery"
@@ -119,16 +141,25 @@ export function QueuePauseButton({ isPaused }: { isPaused: boolean }) {
         display: "inline-flex",
         alignItems: "center",
         gap: "7px",
-        padding: "10px 18px",
-        background: paused ? "#ECFDF5" : "#FFFBEB",
-        border: `1px solid ${paused ? "#10B981" : "#FDE68A"}`,
+        padding: "9px 18px",
+        background: "#FFFFFF",
+        border: "1px solid #FDE68A",
         borderRadius: "10px",
-        color: paused ? "#059669" : "#D97706",
+        color: "#D97706",
         fontSize: "0.875rem",
         fontWeight: 600,
         cursor: pending ? "wait" : "pointer",
         opacity: pending ? 0.7 : 1,
         transition: "all 0.15s ease",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "#FFFDF7";
+        e.currentTarget.style.borderColor = "#FBBF24";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "#FFFFFF";
+        e.currentTarget.style.borderColor = "#FDE68A";
       }}
     >
       {pending ? (
