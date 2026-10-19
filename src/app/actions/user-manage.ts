@@ -7,28 +7,44 @@ import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { hashPassword as betterAuthHash, verifyPassword as betterAuthVerify } from "better-auth/crypto";
 import crypto from "node:crypto";
 
 
-function verifyPasswordHash(password: string, storedHash?: string | null): boolean {
+async function verifyPasswordHash(password: string, storedHash?: string | null): Promise<boolean> {
   if (!storedHash) return false;
-  const parts = storedHash.split(":");
-  if (parts.length === 2) {
-    const [salt, expectedKey] = parts;
-    const computedKey = crypto.scryptSync(password, salt, 64).toString("hex");
-    try {
-      return crypto.timingSafeEqual(Buffer.from(computedKey, "hex"), Buffer.from(expectedKey, "hex"));
-    } catch {
-      return computedKey === expectedKey;
-    }
+  
+  // 1. Better-Auth native scrypt (r: 16)
+  try {
+    const isValid = await betterAuthVerify({ hash: storedHash, password });
+    if (isValid) return true;
+  } catch {
+    // continue to fallback
   }
+
+  // 2. Node.js standard scrypt (r: 8) fallback for legacy hashes
+  try {
+    const parts = storedHash.split(":");
+    if (parts.length === 2) {
+      const [salt, expectedKey] = parts;
+      const computedKey = crypto.scryptSync(password, salt, 64).toString("hex");
+      try {
+        if (crypto.timingSafeEqual(Buffer.from(computedKey, "hex"), Buffer.from(expectedKey, "hex"))) {
+          return true;
+        }
+      } catch {
+        if (computedKey === expectedKey) return true;
+      }
+    }
+  } catch {
+    // continue
+  }
+
   return false;
 }
 
-function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString("hex");
-  const key = crypto.scryptSync(password, salt, 64).toString("hex");
-  return `${salt}:${key}`;
+async function hashPassword(password: string): Promise<string> {
+  return await betterAuthHash(password);
 }
 
 export async function createUserAction(data: {
@@ -52,7 +68,7 @@ export async function createUserAction(data: {
       return { success: false, error: "A user with this email already exists." };
     }
 
-    const hashedPassword = hashPassword(password);
+    const hashedPassword = await hashPassword(password);
     const userId = crypto.randomUUID();
 
     // 1. Insert into application RBAC users table
@@ -283,9 +299,9 @@ export async function changeUserPasswordAction(data: {
     } catch (authErr: any) {
       // If Better-Auth throws (e.g. because of custom scrypt hash from seeding/createUserAction),
       // we check our scrypt verification
-      if (accounts[0]?.password && verifyPasswordHash(currentPassword, accounts[0].password)) {
+      if (accounts[0]?.password && await verifyPasswordHash(currentPassword, accounts[0].password)) {
         isCurrentValid = true;
-      } else if (appUser?.passwordHash && verifyPasswordHash(currentPassword, appUser.passwordHash)) {
+      } else if (appUser?.passwordHash && await verifyPasswordHash(currentPassword, appUser.passwordHash)) {
         isCurrentValid = true;
       }
     }
@@ -295,7 +311,7 @@ export async function changeUserPasswordAction(data: {
     }
 
     // Hash the new password using scrypt
-    const newHashed = hashPassword(newPassword);
+    const newHashed = await hashPassword(newPassword);
 
     // Update application users table
     await db.update(users)
