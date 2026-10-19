@@ -1,9 +1,10 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "@/lib/auth-client";
+import { changeUserPasswordAction } from "@/app/actions/user-manage";
 import {
   LayoutDashboard,
   BarChart3,
@@ -22,6 +23,13 @@ import {
   X,
   LogOut,
   Shield,
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -68,11 +76,86 @@ export function AdminSidebar() {
   const user = session?.user;
 
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
-  // Close the sheet when route changes
+  // Password Modal form state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
+
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close user dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Close the sheet & menu when route changes
   useEffect(() => {
     setIsMoreOpen(false);
+    setIsUserMenuOpen(false);
   }, [pathname]);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwError("");
+    setPwSuccess("");
+
+    if (!currentPassword) {
+      setPwError("Please enter your current password.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPwError("New password must be at least 8 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError("New passwords do not match.");
+      return;
+    }
+    if (newPassword === currentPassword) {
+      setPwError("New password cannot be the same as your current password.");
+      return;
+    }
+
+    setPwLoading(true);
+    try {
+      const res = await changeUserPasswordAction({
+        currentPassword,
+        newPassword,
+      });
+
+      if (!res.success) {
+        setPwError(res.error || "Failed to update password.");
+      } else {
+        setPwSuccess("Password updated successfully! You can now use your new password.");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => {
+          setIsPasswordModalOpen(false);
+          setPwSuccess("");
+        }, 1800);
+      }
+    } catch (err: unknown) {
+      setPwError(err instanceof Error ? err.message : "An unexpected error occurred.");
+    } finally {
+      setPwLoading(false);
+    }
+  };
 
   // Is any item inside "More" currently active?
   const isMoreActive =
@@ -228,36 +311,174 @@ export function AdminSidebar() {
         </nav>
 
         {/* Footer Area with Decorative Wave Background */}
-        <div style={{ position: "relative", marginTop: "auto", overflow: "hidden" }}>
-          <svg
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              width: "100%",
-              height: "130px",
-              pointerEvents: "none",
-              zIndex: 1,
-            }}
-            viewBox="0 0 220 130"
-            preserveAspectRatio="none"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path d="M0,45 C70,15 150,85 220,35 L220,130 L0,130 Z" fill="rgba(49, 46, 129, 0.45)" />
-            <path d="M0,75 C80,45 140,110 220,65 L220,130 L0,130 Z" fill="rgba(67, 56, 202, 0.3)" />
-          </svg>
+        <div style={{ position: "relative", marginTop: "auto" }}>
+          {/* Decorative wave background clipped within its own wrapper */}
+          <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+            <svg
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                width: "100%",
+                height: "130px",
+                pointerEvents: "none",
+                zIndex: 1,
+              }}
+              viewBox="0 0 220 130"
+              preserveAspectRatio="none"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M0,45 C70,15 150,85 220,35 L220,130 L0,130 Z" fill="rgba(49, 46, 129, 0.45)" />
+              <path d="M0,75 C80,45 140,110 220,65 L220,130 L0,130 Z" fill="rgba(67, 56, 202, 0.3)" />
+            </svg>
+          </div>
 
-          {/* User profile row */}
-          <div style={{ padding: "16px 14px", position: "relative", zIndex: 2 }}>
+          {/* User profile row & Dropdown Menu */}
+          <div ref={userMenuRef} style={{ padding: "16px 14px", position: "relative", zIndex: 20 }}>
+            {/* Popover Dropdown (Appears right above user button) */}
+            {isUserMenuOpen && (
+              <div
+                id="sidebar-user-dropdown"
+                style={{
+                  position: "absolute",
+                  bottom: "calc(100% + 8px)",
+                  left: "14px",
+                  right: "14px",
+                  background: "#181B34",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  borderRadius: "14px",
+                  boxShadow: "0 20px 40px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08)",
+                  padding: "8px",
+                  zIndex: 100,
+                  backdropFilter: "blur(14px)",
+                }}
+              >
+                {/* User Identity Info */}
+                <div style={{ padding: "6px 8px 10px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                  <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#FFFFFF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {user?.name || "Shenith Chanidu"}
+                  </div>
+                  <div style={{ fontSize: "0.6875rem", color: "rgba(255, 255, 255, 0.45)", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {user?.email || "admin@pixzora.com"}
+                  </div>
+                  <div style={{ marginTop: "6px", display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(99, 102, 241, 0.2)", border: "1px solid rgba(99, 102, 241, 0.35)", borderRadius: "6px", padding: "2px 6px", fontSize: "0.6875rem", fontWeight: 600, color: "#A5B4FC" }}>
+                    <Shield size={11} />
+                    <span>System Admin</span>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginTop: "6px" }}>
+                  {/* Change Password Option */}
+                  <button
+                    id="btn-user-change-password"
+                    type="button"
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      setPwError("");
+                      setPwSuccess("");
+                      setIsPasswordModalOpen(true);
+                    }}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      background: "transparent",
+                      border: "none",
+                      color: "rgba(255, 255, 255, 0.85)",
+                      fontSize: "0.8125rem",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(99, 102, 241, 0.18)";
+                      e.currentTarget.style.color = "#FFFFFF";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "rgba(255, 255, 255, 0.85)";
+                    }}
+                  >
+                    <div style={{ width: "26px", height: "26px", borderRadius: "7px", background: "rgba(99, 102, 241, 0.18)", display: "flex", alignItems: "center", justifyContent: "center", color: "#818CF8", flexShrink: 0 }}>
+                      <KeyRound size={14} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>Change Password</div>
+                      <div style={{ fontSize: "0.6875rem", color: "rgba(255, 255, 255, 0.4)" }}>Update security login</div>
+                    </div>
+                  </button>
+
+                  {/* Sign Out Option */}
+                  <button
+                    id="btn-user-sign-out"
+                    type="button"
+                    onClick={async () => {
+                      setIsUserMenuOpen(false);
+                      await signOut();
+                      router.push("/login");
+                    }}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      background: "transparent",
+                      border: "none",
+                      color: "#F87171",
+                      fontSize: "0.8125rem",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <div style={{ width: "26px", height: "26px", borderRadius: "7px", background: "rgba(239, 68, 68, 0.18)", display: "flex", alignItems: "center", justifyContent: "center", color: "#F87171", flexShrink: 0 }}>
+                      <LogOut size={14} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>Sign Out</div>
+                      <div style={{ fontSize: "0.6875rem", color: "rgba(248, 113, 113, 0.6)" }}>End active session</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Profile trigger button */}
             <div
               id="sidebar-user-menu"
-              style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
-              onClick={async () => {
-                await signOut();
-                router.push("/login");
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+                padding: "8px 10px",
+                borderRadius: "12px",
+                background: isUserMenuOpen ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.03)",
+                border: "1px solid " + (isUserMenuOpen ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.05)"),
+                transition: "all 0.15s ease",
               }}
-              title="Click to sign out"
+              onClick={() => setIsUserMenuOpen((prev) => !prev)}
+              title="Account & Security Settings"
+              onMouseEnter={(e) => {
+                if (!isUserMenuOpen) e.currentTarget.style.background = "rgba(255, 255, 255, 0.07)";
+              }}
+              onMouseLeave={(e) => {
+                if (!isUserMenuOpen) e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
+              }}
             >
               <div
                 style={{
@@ -272,16 +493,17 @@ export function AdminSidebar() {
                   fontWeight: 700,
                   color: "white",
                   flexShrink: 0,
+                  boxShadow: "0 2px 6px rgba(99, 102, 241, 0.4)",
                 }}
               >
-                S
+                {(user?.name || "Shenith Chanidu").charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, overflow: "hidden" }}>
                 <div
                   style={{
                     fontSize: "0.8125rem",
                     fontWeight: 600,
-                    color: "rgba(255,255,255,0.9)",
+                    color: "rgba(255,255,255,0.95)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -292,7 +514,7 @@ export function AdminSidebar() {
                 <div
                   style={{
                     fontSize: "0.6875rem",
-                    color: "rgba(255,255,255,0.4)",
+                    color: "rgba(255,255,255,0.45)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -301,7 +523,14 @@ export function AdminSidebar() {
                   Admin
                 </div>
               </div>
-              <ChevronDown size={14} color="rgba(255,255,255,0.4)" />
+              <ChevronDown
+                size={14}
+                color="rgba(255,255,255,0.6)"
+                style={{
+                  transform: isUserMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease",
+                }}
+              />
             </div>
           </div>
         </div>
@@ -829,29 +1058,319 @@ export function AdminSidebar() {
                   </div>
                 </div>
 
-                <button
-                  onClick={async () => {
-                    await signOut();
-                    router.push("/login");
-                  }}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMoreOpen(false);
+                      setPwError("");
+                      setPwSuccess("");
+                      setIsPasswordModalOpen(true);
+                    }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      padding: "7px 11px",
+                      borderRadius: "8px",
+                      background: "rgba(99, 102, 241, 0.15)",
+                      border: "1px solid rgba(99, 102, 241, 0.35)",
+                      color: "#A5B4FC",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <KeyRound size={13} />
+                    Password
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await signOut();
+                      router.push("/login");
+                    }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      padding: "7px 11px",
+                      borderRadius: "8px",
+                      background: "rgba(239, 68, 68, 0.15)",
+                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                      color: "#F87171",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <LogOut size={13} />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          CHANGE PASSWORD MODAL (Sleek & Professional)
+          ===================================================================== */}
+      {isPasswordModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1100,
+            padding: "16px",
+          }}
+          onClick={() => setIsPasswordModalOpen(false)}
+        >
+          <div
+            className="sleek-modal-box"
+            style={{
+              background: "#FFFFFF",
+              borderRadius: "20px",
+              width: "100%",
+              maxWidth: "450px",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 60px -15px rgba(15, 23, 42, 0.35)",
+              border: "1px solid #E2E8F0",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: "18px 24px 16px",
+                borderBottom: "1px solid #F1F5F9",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "#FAFAFA",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div
                   style={{
-                    display: "inline-flex",
+                    width: "38px",
+                    height: "38px",
+                    borderRadius: "10px",
+                    background: "#EDE9FE",
+                    display: "flex",
                     alignItems: "center",
-                    gap: "6px",
-                    padding: "7px 12px",
-                    borderRadius: "8px",
-                    background: "rgba(239, 68, 68, 0.15)",
-                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                    color: "#F87171",
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
+                    justifyContent: "center",
+                    color: "#6366F1",
                   }}
                 >
-                  <LogOut size={14} />
-                  Sign Out
-                </button>
+                  <KeyRound size={20} strokeWidth={2.2} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.0625rem", fontWeight: 700, color: "#0F172A" }}>
+                    Change Password
+                  </h3>
+                  <p style={{ margin: "2px 0 0", fontSize: "0.8125rem", color: "#64748B" }}>
+                    Update your account login password
+                  </p>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsPasswordModalOpen(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#94A3B8",
+                  cursor: "pointer",
+                  padding: "6px",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#0F172A";
+                  e.currentTarget.style.background = "#F1F5F9";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#94A3B8";
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form
+              id="form-change-password"
+              onSubmit={handlePasswordSubmit}
+              className="sleek-modal-scroll"
+              style={{
+                padding: "20px 24px",
+                overflowY: "auto",
+                flex: 1,
+              }}
+            >
+              {/* Alert Feedback */}
+              {pwError && (
+                <div
+                  style={{
+                    marginBottom: "16px",
+                    padding: "10px 14px",
+                    borderRadius: "9px",
+                    background: "#FEF2F2",
+                    border: "1px solid #FCA5A5",
+                    color: "#B91C1C",
+                    fontSize: "0.8125rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                  <span>{pwError}</span>
+                </div>
+              )}
+
+              {pwSuccess && (
+                <div
+                  style={{
+                    marginBottom: "16px",
+                    padding: "10px 14px",
+                    borderRadius: "9px",
+                    background: "#F0FDF4",
+                    border: "1px solid #86EFAC",
+                    color: "#15803D",
+                    fontSize: "0.8125rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                  <span>{pwSuccess}</span>
+                </div>
+              )}
+
+              {/* Current Password Field */}
+              <div style={{ marginBottom: "14px" }}>
+                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "5px" }}>
+                  Current Password
+                </label>
+                <div style={{ position: "relative" }}>
+                  <Lock size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
+                  <input
+                    id="input-current-password"
+                    type={showCurrentPassword ? "text" : "password"}
+                    required
+                    placeholder="Enter current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    style={{ width: "100%", padding: "9px 40px 9px 36px", borderRadius: "9px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", outline: "none" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword((prev) => !prev)}
+                    style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#94A3B8", cursor: "pointer", padding: "4px" }}
+                  >
+                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* New Password Field */}
+              <div style={{ marginBottom: "14px" }}>
+                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "5px" }}>
+                  New Password
+                </label>
+                <div style={{ position: "relative" }}>
+                  <Lock size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
+                  <input
+                    id="input-new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    required
+                    placeholder="Min. 8 characters"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    style={{ width: "100%", padding: "9px 40px 9px 36px", borderRadius: "9px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", outline: "none" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#94A3B8", cursor: "pointer", padding: "4px" }}
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "3px" }}>
+                  Must be at least 8 characters long.
+                </div>
+              </div>
+
+              {/* Confirm New Password Field */}
+              <div style={{ marginBottom: "6px" }}>
+                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "5px" }}>
+                  Confirm New Password
+                </label>
+                <div style={{ position: "relative" }}>
+                  <Lock size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
+                  <input
+                    id="input-confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    placeholder="Repeat new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    style={{ width: "100%", padding: "9px 40px 9px 36px", borderRadius: "9px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", outline: "none" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#94A3B8", cursor: "pointer", padding: "4px" }}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: "14px 24px",
+                borderTop: "1px solid #F1F5F9",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+                background: "#FAFAFA",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsPasswordModalOpen(false)}
+                style={{ padding: "8px 16px", borderRadius: "9px", background: "#FFFFFF", border: "1px solid #CBD5E1", color: "#475569", fontWeight: 600, fontSize: "0.875rem", cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                id="btn-submit-change-password"
+                form="form-change-password"
+                type="submit"
+                disabled={pwLoading}
+                style={{ padding: "8px 20px", borderRadius: "9px", background: "#4F46E5", color: "white", border: "none", fontWeight: 600, fontSize: "0.875rem", cursor: pwLoading ? "wait" : "pointer", boxShadow: "0 2px 8px rgba(79, 70, 229, 0.35)", display: "inline-flex", alignItems: "center", gap: "8px" }}
+              >
+                {pwLoading && <Loader2 size={16} className="animate-spin" />}
+                Update Password
+              </button>
             </div>
           </div>
         </div>
@@ -859,4 +1378,5 @@ export function AdminSidebar() {
     </>
   );
 }
+
 

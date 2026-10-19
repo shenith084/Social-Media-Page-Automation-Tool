@@ -5,7 +5,25 @@ import { users, roles, userRoles, permissions, userPermissionGrants } from "@/li
 import { user as authUser, account as authAccount } from "@/lib/db/auth-schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import crypto from "node:crypto";
+
+
+function verifyPasswordHash(password: string, storedHash?: string | null): boolean {
+  if (!storedHash) return false;
+  const parts = storedHash.split(":");
+  if (parts.length === 2) {
+    const [salt, expectedKey] = parts;
+    const computedKey = crypto.scryptSync(password, salt, 64).toString("hex");
+    try {
+      return crypto.timingSafeEqual(Buffer.from(computedKey, "hex"), Buffer.from(expectedKey, "hex"));
+    } catch {
+      return computedKey === expectedKey;
+    }
+  }
+  return false;
+}
 
 function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -214,3 +232,88 @@ export async function deleteUserAction(userId: string) {
     return { success: false, error: message };
   }
 }
+
+export async function changeUserPasswordAction(data: {
+  currentPassword: string;
+  newPassword: string;
+}) {
+  try {
+    const reqHeaders = await headers();
+    const session = await auth.api.getSession({ headers: reqHeaders });
+    if (!session || !session.user) {
+      return { success: false, error: "Unauthorized. Please sign in again." };
+    }
+
+    const { currentPassword, newPassword } = data;
+    if (!currentPassword) {
+      return { success: false, error: "Current password is required." };
+    }
+    if (!newPassword || newPassword.length < 8) {
+      return { success: false, error: "New password must be at least 8 characters long." };
+    }
+    if (currentPassword === newPassword) {
+      return { success: false, error: "New password must be different from current password." };
+    }
+
+    const userEmail = session.user.email.toLowerCase();
+    const userId = session.user.id;
+
+    // Check account in authAccount
+    const accounts = await db.select().from(authAccount).where(
+      and(eq(authAccount.userId, userId), eq(authAccount.providerId, "credential"))
+    );
+
+    // Also check application users table
+    const appUsers = await db.select().from(users).where(eq(users.email, userEmail));
+    const appUser = appUsers[0];
+
+    let isCurrentValid = false;
+
+    // 1. Try Better-Auth changePassword first
+    try {
+      await auth.api.changePassword({
+        body: {
+          currentPassword,
+          newPassword,
+          revokeOtherSessions: false,
+        },
+        headers: reqHeaders,
+      });
+      isCurrentValid = true;
+    } catch (authErr: any) {
+      // If Better-Auth throws (e.g. because of custom scrypt hash from seeding/createUserAction),
+      // we check our scrypt verification
+      if (accounts[0]?.password && verifyPasswordHash(currentPassword, accounts[0].password)) {
+        isCurrentValid = true;
+      } else if (appUser?.passwordHash && verifyPasswordHash(currentPassword, appUser.passwordHash)) {
+        isCurrentValid = true;
+      }
+    }
+
+    if (!isCurrentValid) {
+      return { success: false, error: "Current password is incorrect. Please try again." };
+    }
+
+    // Hash the new password using scrypt
+    const newHashed = hashPassword(newPassword);
+
+    // Update application users table
+    await db.update(users)
+      .set({ passwordHash: newHashed, updatedAt: new Date() })
+      .where(eq(users.email, userEmail));
+
+    // Update Better-Auth account table
+    if (accounts.length > 0) {
+      await db.update(authAccount)
+        .set({ password: newHashed, updatedAt: new Date() })
+        .where(eq(authAccount.id, accounts[0].id));
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("changeUserPasswordAction error:", err);
+    return { success: false, error: message };
+  }
+}
+
