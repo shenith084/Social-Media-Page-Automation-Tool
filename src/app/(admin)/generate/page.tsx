@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Send,
   RefreshCw,
-  Bell,
   ChevronsUpDown,
 } from "lucide-react";
 import { generateContentAction } from "@/app/actions/generate";
@@ -41,7 +40,6 @@ export default function GenerateContentPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user;
-  const initial = user?.name?.[0]?.toUpperCase() ?? "S";
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [topic, setTopic] = useState("");
@@ -151,64 +149,14 @@ export default function GenerateContentPage() {
             Generate {postCount} Post{postCount > 1 ? "s" : ""}
           </button>
 
-          {/* Bell Icon with dot */}
-          <div style={{ position: "relative", cursor: "pointer", padding: "6px" }}>
-            <Bell size={20} color="#64748B" />
-            <div style={{
-              position: "absolute",
-              top: "7px",
-              right: "7px",
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              background: "#3B82F6",
-            }} />
-          </div>
 
-          {/* User Avatar */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
-            <div style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              background: "#EDE9FE",
-              color: "#6366F1",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "0.9375rem",
-              fontWeight: 700,
-              flexShrink: 0,
-            }}>
-              {initial}
-            </div>
-            <ChevronDown size={14} color="#94A3B8" />
-          </div>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="generate-body-responsive">
 
-        {/* Privacy Notice Banner */}
-        <div
-          id="privacy-notice-generation"
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "10px",
-            padding: "12px 18px",
-            background: "#FFFBEB",
-            border: "1px solid #FDE68A",
-            borderRadius: "10px",
-            marginBottom: "22px",
-          }}
-        >
-          <AlertCircle size={18} color="#D97706" style={{ flexShrink: 0, marginTop: "2px" }} />
-          <p style={{ fontSize: "0.84rem", color: "#92400E", lineHeight: 1.5, margin: 0 }}>
-            <strong style={{ fontWeight: 700, color: "#92400E" }}>Privacy notice:</strong> The free AI tier may use submitted prompts to improve its models. Do not include personal data, secrets, or confidential information in your topic, instructions, or reference material.
-          </p>
-        </div>
+
 
         {/* Content Details Card */}
         <form onSubmit={handleSubmit} id="generate-content-form">
