@@ -13,26 +13,45 @@ import {
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-export async function POST(request: NextRequest) {
-  // 1. Authenticate webhook (dev bypass when secret is placeholder)
+async function handleDispatch(request: NextRequest) {
+  // 1. Authenticate webhook / external cron / timer
   const webhookSecret = process.env.INTERNAL_WEBHOOK_SECRET;
   const devBypass = !webhookSecret || webhookSecret === "generate_another_64_hex_char_key";
 
   if (!devBypass) {
-    const signature = request.headers.get("x-webhook-signature-256");
-    const timestamp = request.headers.get("x-webhook-timestamp");
-    if (!signature || !timestamp) {
-      return NextResponse.json({ success: false, error: "Missing auth headers" }, { status: 401 });
-    }
-    const ts = parseInt(timestamp, 10);
-    const now = Math.floor(Date.now() / 1000);
-    if (Math.abs(now - ts) > 300) {
-      return NextResponse.json({ success: false, error: "Request too old" }, { status: 401 });
-    }
-    const rawBody = await request.text();
-    const expectedSig = "sha256=" + crypto.createHmac("sha256", webhookSecret).update(`${timestamp}.${rawBody}`).digest("hex");
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
-      return NextResponse.json({ success: false, error: "Invalid signature" }, { status: 401 });
+    const authHeader = request.headers.get("authorization");
+    const apiKeyHeader = request.headers.get("x-api-key");
+    const urlToken = request.nextUrl.searchParams.get("token") || request.nextUrl.searchParams.get("key");
+    const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+
+    // Direct token authentication (cron-job.org, Vercel Cron, n8n simple auth)
+    const isDirectAuthValid =
+      (bearerToken && bearerToken === webhookSecret) ||
+      (apiKeyHeader && apiKeyHeader === webhookSecret) ||
+      (urlToken && urlToken === webhookSecret);
+
+    if (!isDirectAuthValid) {
+      // Fallback: check HMAC signature (n8n webhook)
+      const signature = request.headers.get("x-webhook-signature-256");
+      const timestamp = request.headers.get("x-webhook-timestamp");
+      if (!signature || !timestamp) {
+        return NextResponse.json(
+          { success: false, error: "Unauthorized: Missing or invalid token/signature" },
+          { status: 401 }
+        );
+      }
+      const ts = parseInt(timestamp, 10);
+      const now = Math.floor(Date.now() / 1000);
+      if (Math.abs(now - ts) > 300) {
+        return NextResponse.json({ success: false, error: "Request too old" }, { status: 401 });
+      }
+      const rawBody = await request.text().catch(() => "");
+      const expectedSig =
+        "sha256=" +
+        crypto.createHmac("sha256", webhookSecret).update(`${timestamp}.${rawBody}`).digest("hex");
+      if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
+        return NextResponse.json({ success: false, error: "Invalid signature" }, { status: 401 });
+      }
     }
   }
 
@@ -208,4 +227,13 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ success: false, error: message, claimedJobId }, { status: 500 });
   }
+}
+
+
+export async function POST(request: NextRequest) {
+  return handleDispatch(request);
+}
+
+export async function GET(request: NextRequest) {
+  return handleDispatch(request);
 }
