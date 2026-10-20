@@ -530,6 +530,9 @@ export function SettingsEditor({
                         borderRadius: "8px",
                         border: "1px solid #CBD5E1",
                         fontSize: "0.875rem",
+                        color: "#0F172A",
+                        background: "#FFFFFF",
+                        fontWeight: 600,
                         flex: 1,
                       }}
                     />
@@ -539,6 +542,7 @@ export function SettingsEditor({
                       style={{
                         padding: "7px 14px",
                         background: "#F1F5F9",
+                        color: "#1E293B",
                         border: "1px solid #CBD5E1",
                         borderRadius: "8px",
                         fontSize: "0.8125rem",
@@ -573,6 +577,9 @@ export function SettingsEditor({
                       borderRadius: "8px",
                       border: "1px solid #CBD5E1",
                       fontSize: "0.875rem",
+                      color: "#0F172A",
+                      background: "#FFFFFF",
+                      fontWeight: 600,
                     }}
                   />
                 </div>
@@ -591,6 +598,9 @@ export function SettingsEditor({
                       borderRadius: "8px",
                       border: "1px solid #CBD5E1",
                       fontSize: "0.875rem",
+                      color: "#0F172A",
+                      background: "#FFFFFF",
+                      fontWeight: 600,
                     }}
                   />
                 </div>
@@ -609,6 +619,9 @@ export function SettingsEditor({
                       borderRadius: "8px",
                       border: "1px solid #CBD5E1",
                       fontSize: "0.875rem",
+                      color: "#0F172A",
+                      background: "#FFFFFF",
+                      fontWeight: 600,
                     }}
                   />
                 </div>
@@ -634,6 +647,9 @@ export function SettingsEditor({
                     borderRadius: "8px",
                     border: "1px solid #CBD5E1",
                     fontSize: "0.875rem",
+                    color: "#0F172A",
+                    background: "#FFFFFF",
+                    fontWeight: 600,
                   }}
                 />
               </div>
@@ -653,12 +669,14 @@ export function SettingsEditor({
                     border: "1px solid #CBD5E1",
                     fontSize: "0.875rem",
                     background: "#FFFFFF",
+                    color: "#0F172A",
+                    fontWeight: 600,
                   }}
                 >
-                  <option value="Europe/London">Europe/London (GMT/BST aware)</option>
-                  <option value="UTC">UTC (Universal Coordinated Time)</option>
-                  <option value="America/New_York">America/New_York (US Eastern)</option>
-                  <option value="Asia/Colombo">Asia/Colombo (Sri Lanka / IST)</option>
+                  <option value="Europe/London" style={{ color: "#0F172A" }}>Europe/London (GMT/BST aware)</option>
+                  <option value="UTC" style={{ color: "#0F172A" }}>UTC (Universal Coordinated Time)</option>
+                  <option value="America/New_York" style={{ color: "#0F172A" }}>America/New_York (US Eastern)</option>
+                  <option value="Asia/Colombo" style={{ color: "#0F172A" }}>Asia/Colombo (Sri Lanka / IST)</option>
                 </select>
               </div>
             </div>
@@ -729,6 +747,7 @@ export function SettingsEditor({
                   borderRadius: "8px",
                   border: "1px solid #CBD5E1",
                   background: "#FFFFFF",
+                  color: "#475569",
                   fontSize: "0.875rem",
                   fontWeight: 600,
                   cursor: "pointer",
