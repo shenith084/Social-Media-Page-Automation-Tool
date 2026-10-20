@@ -6,6 +6,14 @@ import * as authSchema from "./db/auth-schema";
 import crypto from "node:crypto";
 
 export const auth = betterAuth({
+  baseURL:
+    process.env.BETTER_AUTH_URL ||
+    process.env.APP_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : undefined),
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
@@ -51,5 +59,13 @@ export const auth = betterAuth({
       },
     },
   },
-  trustedOrigins: [process.env.APP_URL || "http://localhost:3000"],
+  trustedOrigins: [
+    "http://localhost:3000",
+    "https://*.vercel.app",
+    "https://social-media-page-automation-tool.vercel.app",
+    ...(process.env.APP_URL ? [process.env.APP_URL.replace(/\/+$/, "")] : []),
+    ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL.replace(/\/+$/, "")] : []),
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+    ...(process.env.VERCEL_PROJECT_PRODUCTION_URL ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`] : []),
+  ],
 });
