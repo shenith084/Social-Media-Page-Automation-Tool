@@ -14,3 +14,5 @@ Thumbs.db
 *.secret
 *.pem
 *.key
+
+*.tsbuildinfo
