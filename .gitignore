@@ -16,3 +16,7 @@ Thumbs.db
 *.key
 
 *.tsbuildinfo
+
+cloudflared.exe
+
+start-tunnel.bat
