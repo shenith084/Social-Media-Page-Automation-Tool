@@ -1,4 +1,4 @@
-﻿import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
@@ -20,8 +20,9 @@ const client: postgres.Sql =
   global._pgClient ??
   postgres(cleanUrl, {
     max: 5,
-    idle_timeout: 30,
+    idle_timeout: 20,
     connect_timeout: 30,
+    max_lifetime: 60 * 5,
     prepare: false,
   });
 
