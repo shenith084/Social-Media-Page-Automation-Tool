@@ -1,13 +1,20 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { users, roles, userRoles, userPermissionGrants, permissions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { UsersClient, UserRow } from "@/components/admin/users-client";
+import { getCurrentUserSession } from "@/lib/rbac-server";
 
 export const metadata: Metadata = { title: "Users & Permissions | Pixzora Social" };
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
+  const current = await getCurrentUserSession();
+  if (!current || (!current.isSuperAdmin && !current.hasPermission("users.manage"))) {
+    redirect("/dashboard");
+  }
+
   let allUsers: (typeof users.$inferSelect)[] = [];
   let assignedRoles: { userId: string; roleName: string }[] = [];
   let userGrants: { userId: string; permName: string }[] = [];
@@ -104,7 +111,7 @@ export default async function UsersPage() {
 
   return (
     <div className="admin-page-container">
-      <UsersClient initialUsers={initialUsers} />
+      <UsersClient initialUsers={initialUsers} currentUserEmail={current.email} />
     </div>
   );
 }

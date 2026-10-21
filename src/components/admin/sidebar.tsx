@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -69,11 +69,31 @@ const MORE_CONFIG_ITEMS = [
   { href: "/usage", label: "Usage & Audit", icon: BarChart3, desc: "Free tier metrics & logs" },
 ];
 
-export function AdminSidebar() {
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: "super_admin" | "admin" | "editor" | "viewer";
+  isSuperAdmin: boolean;
+  isAdmin: boolean;
+  isEditor: boolean;
+  isViewer: boolean;
+  permissions: string[];
+}
+
+export function AdminSidebar({ currentUser }: { currentUser?: UserProfile | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user;
+
+  const [profile, setProfile] = useState<UserProfile | null>(currentUser || null);
+
+  useEffect(() => {
+    if (currentUser) {
+      setProfile(currentUser);
+    }
+  }, [currentUser]);
 
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -218,22 +238,50 @@ export function AdminSidebar() {
 
         {/* Page connected badge */}
         <div style={{ padding: "0 14px 16px", position: "relative", zIndex: 2 }}>
-          <Link
-            href="/settings"
-            style={{
-              textDecoration: "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "8px",
-              padding: "7px 12px",
-              background: "rgba(6, 78, 59, 0.45)",
-              border: "1px solid rgba(16, 185, 129, 0.35)",
-              borderRadius: "8px",
-              cursor: "pointer",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {profile?.isAdmin ? (
+            <Link
+              href="/settings"
+              style={{
+                textDecoration: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+                padding: "7px 12px",
+                background: "rgba(6, 78, 59, 0.45)",
+                border: "1px solid rgba(16, 185, 129, 0.35)",
+                borderRadius: "8px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div
+                  style={{
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "50%",
+                    background: "#10B981",
+                    boxShadow: "0 0 6px #10B981",
+                  }}
+                />
+                <span style={{ fontSize: "0.75rem", color: "#34D399", fontWeight: 500 }}>
+                  Page connected
+                </span>
+              </div>
+              <ChevronRight size={13} color="#10B981" />
+            </Link>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "7px 12px",
+                background: "rgba(6, 78, 59, 0.45)",
+                border: "1px solid rgba(16, 185, 129, 0.35)",
+                borderRadius: "8px",
+              }}
+            >
               <div
                 style={{
                   width: "7px",
@@ -247,13 +295,27 @@ export function AdminSidebar() {
                 Page connected
               </span>
             </div>
-            <ChevronRight size={13} color="#10B981" />
-          </Link>
+          )}
         </div>
 
         {/* Navigation */}
         <nav style={{ flex: 1, padding: "0 10px", position: "relative", zIndex: 2 }} role="navigation">
-          {NAV_ITEMS.map((item, i) => {
+          {NAV_ITEMS.filter((item) => {
+            if ("type" in item && item.type === "separator") {
+              return profile ? profile.isAdmin : false;
+            }
+            const nav = item as { href: string; label: string };
+            if (nav.href === "/users") {
+              return profile ? profile.isSuperAdmin : false;
+            }
+            if (nav.href === "/settings" || nav.href === "/templates" || nav.href === "/usage") {
+              return profile ? profile.isAdmin : false;
+            }
+            if (nav.href === "/recovery") {
+              return profile ? profile.isAdmin : false;
+            }
+            return true;
+          }).map((item, i) => {
             if ("type" in item && item.type === "separator") {
               return (
                 <div
@@ -357,14 +419,24 @@ export function AdminSidebar() {
                 {/* User Identity Info */}
                 <div style={{ padding: "6px 8px 10px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
                   <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#FFFFFF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {user?.name || "Shenith Chanidu"}
+                    {profile?.name || user?.name || "Shenith Chanidu"}
                   </div>
                   <div style={{ fontSize: "0.6875rem", color: "rgba(255, 255, 255, 0.45)", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {user?.email || "admin@pixzora.com"}
+                    {profile?.email || user?.email || "admin@pixzora.com"}
                   </div>
                   <div style={{ marginTop: "6px", display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(99, 102, 241, 0.2)", border: "1px solid rgba(99, 102, 241, 0.35)", borderRadius: "6px", padding: "2px 6px", fontSize: "0.6875rem", fontWeight: 600, color: "#A5B4FC" }}>
                     <Shield size={11} />
-                    <span>System Admin</span>
+                    <span>
+                      {profile?.role === "super_admin"
+                        ? "Super Admin"
+                        : profile?.role === "admin"
+                        ? "System Admin"
+                        : profile?.role === "editor"
+                        ? "Content Editor"
+                        : profile?.role === "viewer"
+                        ? "System Viewer"
+                        : "System Member"}
+                    </span>
                   </div>
                 </div>
 
@@ -496,7 +568,7 @@ export function AdminSidebar() {
                   boxShadow: "0 2px 6px rgba(99, 102, 241, 0.4)",
                 }}
               >
-                {(user?.name || "Shenith Chanidu").charAt(0).toUpperCase()}
+                {(profile?.name || user?.name || "U").charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, overflow: "hidden" }}>
                 <div
@@ -509,7 +581,7 @@ export function AdminSidebar() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {user?.name || "Shenith Chanidu"}
+                  {profile?.name || user?.name || "Shenith Chanidu"}
                 </div>
                 <div
                   style={{
@@ -520,7 +592,15 @@ export function AdminSidebar() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  Admin
+                  {profile?.role === "super_admin"
+                    ? "Super Admin"
+                    : profile?.role === "admin"
+                    ? "Admin"
+                    : profile?.role === "editor"
+                    ? "Editor"
+                    : profile?.role === "viewer"
+                    ? "Viewer"
+                    : "Member"}
                 </div>
               </div>
               <ChevronDown
@@ -629,7 +709,7 @@ export function AdminSidebar() {
             }}
             aria-label="Open menu"
           >
-            S
+            {(profile?.name || user?.name || "U").charAt(0).toUpperCase()}
           </button>
         </div>
       </header>
@@ -873,7 +953,10 @@ export function AdminSidebar() {
                 Publishing & Operations
               </div>
               <div style={{ display: "grid", gap: "6px" }}>
-                {MORE_CONTENT_ITEMS.map((item) => {
+                {MORE_CONTENT_ITEMS.filter((item) => {
+                  if (item.href === "/recovery") return profile ? profile.isAdmin : true;
+                  return true;
+                }).map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
 
@@ -939,84 +1022,89 @@ export function AdminSidebar() {
             </div>
 
             {/* Configuration Category */}
-            <div style={{ padding: "8px 16px 12px" }}>
-              <div
-                style={{
-                  fontSize: "0.6875rem",
-                  fontWeight: 600,
-                  color: "rgba(255, 255, 255, 0.4)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  padding: "0 8px 8px",
-                }}
-              >
-                Configuration & System
-              </div>
-              <div style={{ display: "grid", gap: "6px" }}>
-                {MORE_CONFIG_ITEMS.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            {(!profile || profile.isAdmin) && (
+              <div style={{ padding: "8px 16px 12px" }}>
+                <div
+                  style={{
+                    fontSize: "0.6875rem",
+                    fontWeight: 600,
+                    color: "rgba(255, 255, 255, 0.4)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    padding: "0 8px 8px",
+                  }}
+                >
+                  Configuration & System
+                </div>
+                <div style={{ display: "grid", gap: "6px" }}>
+                  {MORE_CONFIG_ITEMS.filter((item) => {
+                    if (item.href === "/users") return profile ? profile.isSuperAdmin : true;
+                    return true;
+                  }).map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
 
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setIsMoreOpen(false)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "14px",
-                        padding: "10px 14px",
-                        borderRadius: "12px",
-                        textDecoration: "none",
-                        background: isActive ? "#4F46E5" : "rgba(255, 255, 255, 0.04)",
-                        border: `1px solid ${isActive ? "#6366F1" : "rgba(255, 255, 255, 0.06)"}`,
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      <div
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsMoreOpen(false)}
                         style={{
-                          width: "36px",
-                          height: "36px",
-                          borderRadius: "10px",
-                          background: isActive ? "rgba(255, 255, 255, 0.2)" : "rgba(99, 102, 241, 0.15)",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
-                          color: isActive ? "#FFFFFF" : "#818CF8",
-                          flexShrink: 0,
+                          gap: "14px",
+                          padding: "10px 14px",
+                          borderRadius: "12px",
+                          textDecoration: "none",
+                          background: isActive ? "#4F46E5" : "rgba(255, 255, 255, 0.04)",
+                          border: `1px solid ${isActive ? "#6366F1" : "rgba(255, 255, 255, 0.06)"}`,
+                          transition: "all 0.15s ease",
                         }}
                       >
-                        <Icon size={18} />
-                      </div>
-                      <div style={{ flex: 1 }}>
                         <div
                           style={{
-                            fontSize: "0.875rem",
-                            fontWeight: 600,
-                            color: "#FFFFFF",
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "10px",
+                            background: isActive ? "rgba(255, 255, 255, 0.2)" : "rgba(99, 102, 241, 0.15)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: isActive ? "#FFFFFF" : "#818CF8",
+                            flexShrink: 0,
                           }}
                         >
-                          {item.label}
+                          <Icon size={18} />
                         </div>
-                        <div
-                          style={{
-                            fontSize: "0.75rem",
-                            color: isActive ? "rgba(255, 255, 255, 0.8)" : "rgba(255, 255, 255, 0.5)",
-                          }}
-                        >
-                          {item.desc}
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              fontSize: "0.875rem",
+                              fontWeight: 600,
+                              color: "#FFFFFF",
+                            }}
+                          >
+                            {item.label}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.75rem",
+                              color: isActive ? "rgba(255, 255, 255, 0.8)" : "rgba(255, 255, 255, 0.5)",
+                            }}
+                          >
+                            {item.desc}
+                          </div>
                         </div>
-                      </div>
-                      <ChevronRight
-                        size={16}
-                        style={{ color: isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.3)" }}
-                      />
-                    </Link>
-                  );
-                })}
+                        <ChevronRight
+                          size={16}
+                          style={{ color: isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.3)" }}
+                        />
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Profile & Logout row */}
             <div style={{ padding: "8px 16px" }}>
@@ -1046,14 +1134,22 @@ export function AdminSidebar() {
                       fontSize: "0.875rem",
                     }}
                   >
-                    S
+                    {(profile?.name || user?.name || "U").charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "white" }}>
-                      {user?.name || "Shenith Chanidu"}
+                      {profile?.name || user?.name || "Shenith Chanidu"}
                     </div>
                     <div style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.5)" }}>
-                      Admin Account
+                      {profile?.role === "super_admin"
+                        ? "Super Admin Account"
+                        : profile?.role === "admin"
+                        ? "Admin Account"
+                        : profile?.role === "editor"
+                        ? "Editor Account"
+                        : profile?.role === "viewer"
+                        ? "Viewer Account"
+                        : "Member Account"}
                     </div>
                   </div>
                 </div>

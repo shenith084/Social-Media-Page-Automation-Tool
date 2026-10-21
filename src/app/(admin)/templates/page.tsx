@@ -1,12 +1,19 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Palette, Bot, Sliders, CheckCircle2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { templates, aiSettings } from "@/lib/db/schema";
+import { getCurrentUserSession } from "@/lib/rbac-server";
 
 export const metadata: Metadata = { title: "Templates & AI Settings" };
 export const dynamic = "force-dynamic";
 
 export default async function TemplatesPage() {
+  const current = await getCurrentUserSession();
+  if (!current || !current.isAdmin) {
+    redirect("/dashboard");
+  }
+
   const currentTemplates = await db.select().from(templates).limit(10);
   const currentAiSettings = (await db.select().from(aiSettings).limit(1))[0];
 

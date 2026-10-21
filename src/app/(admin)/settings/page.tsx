@@ -1,9 +1,11 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { CalendarCheck, AlertCircle, RefreshCw } from "lucide-react";
 import { db } from "@/lib/db";
 import { pages, pageConnections, scheduleSettings, testPosts, pageSettings } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { SettingsEditor } from "@/components/admin/settings-editor";
+import { getCurrentUserSession } from "@/lib/rbac-server";
 
 export const metadata: Metadata = { title: "Page & Schedule Settings" };
 export const dynamic = "force-dynamic";
@@ -21,6 +23,11 @@ async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 2, delayMs = 60
 }
 
 export default async function SettingsPage() {
+  const current = await getCurrentUserSession();
+  if (!current || !current.isAdmin) {
+    redirect("/dashboard");
+  }
+
   try {
     const data = await fetchWithRetry(async () => {
       let activePage = await db.query.pages.findFirst({

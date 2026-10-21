@@ -1,14 +1,21 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { db } from "@/lib/db";
 import { queueItems, contentVersions } from "@/lib/db/schema";
 import { eq, inArray, desc } from "drizzle-orm";
+import { getCurrentUserSession } from "@/lib/rbac-server";
 
 export const metadata: Metadata = { title: "Recovery & Dead-Letter Queue" };
 export const dynamic = "force-dynamic";
 
 export default async function RecoveryPage() {
+  const current = await getCurrentUserSession();
+  if (!current || !current.isAdmin) {
+    redirect("/dashboard");
+  }
+
   const problemJobs = await db
     .select({
       queueItem: queueItems,

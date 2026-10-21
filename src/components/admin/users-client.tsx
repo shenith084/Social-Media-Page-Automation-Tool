@@ -68,15 +68,16 @@ const ALL_PERMISSIONS: PermissionDef[] = [
 const DEFAULT_ROLE_PERMS: Record<string, string[]> = {
   super_admin: ALL_PERMISSIONS.map((p) => p.name),
   admin: ALL_PERMISSIONS.filter((p) => p.name !== "users.manage").map((p) => p.name),
-  editor: ["generation.run", "draft.create", "draft.edit", "draft.regenerate", "draft.archive", "audit.view"],
+  editor: ["generation.run", "draft.create", "draft.edit", "draft.regenerate", "draft.archive"],
   viewer: ["audit.view"],
 };
 
 interface Props {
   initialUsers: UserRow[];
+  currentUserEmail?: string;
 }
 
-export function UsersClient({ initialUsers }: Props) {
+export function UsersClient({ initialUsers, currentUserEmail }: Props) {
   const [usersList, setUsersList] = useState<UserRow[]>(initialUsers);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -507,7 +508,7 @@ export function UsersClient({ initialUsers }: Props) {
                           <div>
                             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                               <span style={{ fontWeight: 700, fontSize: "0.9375rem", color: "#0F172A" }}>{u.name}</span>
-                              {u.email === "shenith222@gmail.com" && (
+                              {currentUserEmail && u.email.toLowerCase() === currentUserEmail.toLowerCase() && (
                                 <span style={{ fontSize: "0.6875rem", padding: "2px 6px", background: "#EDE9FE", color: "#6D28D9", borderRadius: "4px", fontWeight: 700 }}>YOU</span>
                               )}
                             </div>

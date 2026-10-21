@@ -1,13 +1,20 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { BarChart3, Database, ShieldCheck, Zap, Bot, Share2, Activity, Clock } from "lucide-react";
 import { db } from "@/lib/db";
 import { usageRecords, auditLogs, users } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { getCurrentUserSession } from "@/lib/rbac-server";
 
 export const metadata: Metadata = { title: "Usage & Audit | Pixzora Social" };
 export const dynamic = "force-dynamic";
 
 export default async function UsagePage() {
+  const current = await getCurrentUserSession();
+  if (!current || !current.isAdmin) {
+    redirect("/dashboard");
+  }
+
   let logs: Array<{
     log: typeof auditLogs.$inferSelect;
     userName: string | null;

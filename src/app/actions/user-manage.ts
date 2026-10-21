@@ -9,6 +9,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { hashPassword as betterAuthHash, verifyPassword as betterAuthVerify } from "better-auth/crypto";
 import crypto from "node:crypto";
+import { getCurrentUserSession } from "@/lib/rbac-server";
 
 
 async function verifyPasswordHash(password: string, storedHash?: string | null): Promise<boolean> {
@@ -56,6 +57,11 @@ export async function createUserAction(data: {
   isActive?: boolean;
 }) {
   try {
+    const caller = await getCurrentUserSession();
+    if (!caller || (!caller.isSuperAdmin && !caller.hasPermission("users.manage"))) {
+      return { success: false, error: "Access Denied: Only Super Administrators can create users." };
+    }
+
     const email = data.email.trim().toLowerCase();
     const name = data.name.trim();
     const password = data.password && data.password.trim().length > 0 ? data.password.trim() : "Pixzora2026!";
@@ -154,6 +160,11 @@ export async function updateUserPermissionsAction(data: {
   permissionNames: string[];
 }) {
   try {
+    const caller = await getCurrentUserSession();
+    if (!caller || (!caller.isSuperAdmin && !caller.hasPermission("users.manage"))) {
+      return { success: false, error: "Access Denied: Only Super Administrators can modify permissions." };
+    }
+
     const { userId, permissionNames } = data;
 
     // Remove existing grants
@@ -190,6 +201,11 @@ export async function updateUserRoleAction(data: {
   roleName: string;
 }) {
   try {
+    const caller = await getCurrentUserSession();
+    if (!caller || (!caller.isSuperAdmin && !caller.hasPermission("users.manage"))) {
+      return { success: false, error: "Access Denied: Only Super Administrators can change user roles." };
+    }
+
     const { userId, roleName } = data;
 
     const targetRole = (await db.select().from(roles).where(eq(roles.name, roleName)))[0];
@@ -216,6 +232,11 @@ export async function toggleUserStatusAction(data: {
   isActive: boolean;
 }) {
   try {
+    const caller = await getCurrentUserSession();
+    if (!caller || (!caller.isSuperAdmin && !caller.hasPermission("users.manage"))) {
+      return { success: false, error: "Access Denied: Only Super Administrators can toggle user status." };
+    }
+
     const { userId, isActive } = data;
 
     await db.update(users).set({ isActive }).where(eq(users.id, userId));
@@ -230,6 +251,11 @@ export async function toggleUserStatusAction(data: {
 
 export async function deleteUserAction(userId: string) {
   try {
+    const caller = await getCurrentUserSession();
+    if (!caller || (!caller.isSuperAdmin && !caller.hasPermission("users.manage"))) {
+      return { success: false, error: "Access Denied: Only Super Administrators can delete users." };
+    }
+
     const targetUser = (await db.select().from(users).where(eq(users.id, userId)))[0];
     if (targetUser && targetUser.email === "shenith222@gmail.com") {
       return { success: false, error: "Primary Super Admin account cannot be deleted." };
