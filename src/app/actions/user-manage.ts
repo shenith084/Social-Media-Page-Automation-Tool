@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { users, roles, userRoles, permissions, userPermissionGrants } from "@/lib/db/schema";
-import { user as authUser, account as authAccount } from "@/lib/db/auth-schema";
+import { user as authUser, account as authAccount, session as authSession } from "@/lib/db/auth-schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -69,9 +69,19 @@ export async function createUserAction(data: {
     }
 
     const hashedPassword = await hashPassword(password);
+
+    // 1. Clean up any stale or conflicting authUser records for this email to prevent orphan collisions
+    const existingAuth = await db.select().from(authUser).where(eq(authUser.email, email));
+    for (const au of existingAuth) {
+      await db.delete(authSession).where(eq(authSession.userId, au.id));
+      await db.delete(authAccount).where(eq(authAccount.userId, au.id));
+      await db.delete(authUser).where(eq(authUser.id, au.id));
+    }
+
+    // 2. Generate unified ID for both application RBAC users and better-auth user
     const userId = crypto.randomUUID();
 
-    // 1. Insert into application RBAC users table
+    // 3. Insert into application RBAC users table
     await db.insert(users).values({
       id: userId,
       name,
@@ -81,31 +91,26 @@ export async function createUserAction(data: {
       mustChangePassword: false,
     });
 
-    // 2. Insert into better-auth tables so the user can log in
-    try {
-      const authUserId = userId;
-      await db.insert(authUser).values({
-        id: authUserId,
-        name,
-        email,
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).onConflictDoNothing();
+    // 4. Insert into better-auth tables so the user can log in reliably
+    await db.insert(authUser).values({
+      id: userId,
+      name,
+      email,
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
-      const accountId = crypto.randomUUID();
-      await db.insert(authAccount).values({
-        id: accountId,
-        accountId: authUserId,
-        providerId: "credential",
-        userId: authUserId,
-        password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).onConflictDoNothing();
-    } catch (authErr) {
-      console.warn("Could not mirror to better-auth account:", authErr);
-    }
+    const accountId = crypto.randomUUID();
+    await db.insert(authAccount).values({
+      id: accountId,
+      accountId: userId,
+      providerId: "credential",
+      userId: userId,
+      password: hashedPassword,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     // 3. Assign role
     const targetRole = (await db.select().from(roles).where(eq(roles.name, roleName)))[0] ||
@@ -230,15 +235,26 @@ export async function deleteUserAction(userId: string) {
       return { success: false, error: "Primary Super Admin account cannot be deleted." };
     }
 
+    const targetEmail = targetUser?.email?.toLowerCase();
+
     await db.delete(userPermissionGrants).where(eq(userPermissionGrants.userId, userId));
     await db.delete(userRoles).where(eq(userRoles.userId, userId));
     await db.delete(users).where(eq(users.id, userId));
 
     try {
+      if (targetEmail) {
+        const matchingAuth = await db.select().from(authUser).where(eq(authUser.email, targetEmail));
+        for (const au of matchingAuth) {
+          await db.delete(authSession).where(eq(authSession.userId, au.id));
+          await db.delete(authAccount).where(eq(authAccount.userId, au.id));
+          await db.delete(authUser).where(eq(authUser.id, au.id));
+        }
+      }
+      await db.delete(authSession).where(eq(authSession.userId, userId));
       await db.delete(authAccount).where(eq(authAccount.userId, userId));
       await db.delete(authUser).where(eq(authUser.id, userId));
-    } catch {
-      // ignore
+    } catch (cleanupErr) {
+      console.warn("Could not clean up better-auth records on delete:", cleanupErr);
     }
 
     revalidatePath("/users");
