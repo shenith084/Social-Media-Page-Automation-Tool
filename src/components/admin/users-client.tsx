@@ -18,6 +18,8 @@ import {
   Sparkles,
   Loader2,
   CheckCircle2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import {
   createUserAction,
@@ -83,7 +85,8 @@ export function UsersClient({ initialUsers }: Props) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createEmail, setCreateEmail] = useState("");
-  const [createPassword, setCreatePassword] = useState("Pixzora2026!");
+  const [createPassword, setCreatePassword] = useState("");
+  const [showCreatePassword, setShowCreatePassword] = useState(true);
   const [createRole, setCreateRole] = useState("admin");
   const [createPerms, setCreatePerms] = useState<string[]>(DEFAULT_ROLE_PERMS["admin"] || []);
 
@@ -113,7 +116,8 @@ export function UsersClient({ initialUsers }: Props) {
   const handleOpenCreate = () => {
     setCreateName("");
     setCreateEmail("");
-    setCreatePassword("Pixzora2026!");
+    setCreatePassword("");
+    setShowCreatePassword(true);
     setCreateRole("admin");
     setCreatePerms(DEFAULT_ROLE_PERMS["admin"] || []);
     setIsCreateOpen(true);
@@ -132,6 +136,15 @@ export function UsersClient({ initialUsers }: Props) {
       await showAlert({
         title: "Validation Notice",
         message: "Please provide a valid name and email address.",
+        type: "warning",
+      });
+      return;
+    }
+
+    if (!createPassword || createPassword.trim().length < 6) {
+      await showAlert({
+        title: "Password Required",
+        message: "Please enter an initial password of at least 6 characters for the new member.",
         type: "warning",
       });
       return;
@@ -675,6 +688,7 @@ export function UsersClient({ initialUsers }: Props) {
             <form
               id="form-create-user"
               onSubmit={handleCreateSubmit}
+              autoComplete="off"
               className="sleek-modal-scroll"
               style={{
                 padding: "18px 24px",
@@ -708,7 +722,9 @@ export function UsersClient({ initialUsers }: Props) {
                   <Mail size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
                   <input
                     id="input-create-email"
+                    name="new_user_member_email"
                     type="email"
+                    autoComplete="off"
                     required
                     placeholder="sarah@pixzora.com"
                     value={createEmail}
@@ -719,22 +735,70 @@ export function UsersClient({ initialUsers }: Props) {
               </div>
 
               <div style={{ marginBottom: "13px" }}>
-                <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", marginBottom: "5px" }}>
-                  Initial Password
-                </label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "#334155", margin: 0 }}>
+                    Initial Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const randomPass = "Pxz@" + Math.floor(100000 + Math.random() * 900000) + "!";
+                      setCreatePassword(randomPass);
+                      setShowCreatePassword(true);
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#6366F1",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  >
+                    Generate Random
+                  </button>
+                </div>
                 <div style={{ position: "relative" }}>
                   <Lock size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
                   <input
                     id="input-create-password"
-                    type="text"
+                    name="new_user_security_key"
+                    type={showCreatePassword ? "text" : "password"}
                     required
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-form-type="other"
+                    placeholder="Enter an initial password (min 6 characters)..."
                     value={createPassword}
                     onChange={(e) => setCreatePassword(e.target.value)}
-                    style={{ width: "100%", padding: "8px 14px 8px 36px", borderRadius: "9px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", fontFamily: "monospace", outline: "none" }}
+                    style={{ width: "100%", padding: "8px 38px 8px 36px", borderRadius: "9px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", fontFamily: "monospace", outline: "none", background: "#FFFFFF" }}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowCreatePassword(!showCreatePassword)}
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      color: "#94A3B8",
+                      cursor: "pointer",
+                      padding: "3px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                    aria-label={showCreatePassword ? "Hide password" : "Show password"}
+                  >
+                    {showCreatePassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
                 </div>
                 <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "3px" }}>
-                  Member will use this password to sign in to Pixzora.
+                  Member will use this password to sign in. Click &quot;Generate Random&quot; or enter a custom one.
                 </div>
               </div>
 

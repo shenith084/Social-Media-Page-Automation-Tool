@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { db } from "@/lib/db";
 import { users, roles, userRoles, permissions, userPermissionGrants } from "@/lib/db/schema";
@@ -96,7 +96,7 @@ export async function createUserAction(data: {
       const accountId = crypto.randomUUID();
       await db.insert(authAccount).values({
         id: accountId,
-        accountId: email,
+        accountId: authUserId,
         providerId: "credential",
         userId: authUserId,
         password: hashedPassword,

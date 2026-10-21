@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { signIn, signUp } from "@/lib/auth-client";
+import { signIn } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,29 +19,15 @@ export default function LoginPage() {
     setErrorMsg("");
     setLoading(true);
 
-    let data, error;
-
     try {
-      if (isSignUp) {
-        const res = await signUp.email({
-          email: email.trim().toLowerCase(),
-          password,
-          name: name.trim() || "Admin",
-        });
-        data = res.data;
-        error = res.error;
-      } else {
-        const res = await signIn.email({
-          email: email.trim().toLowerCase(),
-          password,
-        });
-        data = res.data;
-        error = res.error;
-      }
+      const res = await signIn.email({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-      if (error) {
-        console.warn("Login error details:", error);
-        setErrorMsg(error.message || "Invalid email or password. Please verify your credentials.");
+      if (res.error) {
+        console.warn("Login error details:", res.error);
+        setErrorMsg(res.error.message || "Invalid email or password. Please verify your credentials.");
         setLoading(false);
       } else {
         router.push("/dashboard");
@@ -126,7 +110,7 @@ export default function LoginPage() {
             Pixzora Social
           </h1>
           <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem" }}>
-            Admin Panel · {isSignUp ? "Create an account" : "Sign in to continue"}
+            Admin Panel · Sign in to continue
           </p>
         </div>
 
@@ -143,8 +127,8 @@ export default function LoginPage() {
                 marginBottom: "20px",
                 padding: "12px 14px",
                 borderRadius: "8px",
-                background: "rgba(239, 68, 68, 0.15)",
-                border: "1px solid rgba(239, 68, 68, 0.4)",
+                background: "rgba(239,68,68,0.12)",
+                border: "1px solid rgba(239,68,68,0.3)",
                 color: "#FCA5A5",
                 fontSize: "0.875rem",
                 display: "flex",
@@ -159,53 +143,6 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleLogin} id="login-form">
-            
-            {/* Name (Sign Up only) */}
-            {isSignUp && (
-              <div style={{ marginBottom: "20px" }}>
-                <label
-                  htmlFor="name"
-                  style={{
-                    display: "block",
-                    fontSize: "0.875rem",
-                    fontWeight: 500,
-                    color: "rgba(255,255,255,0.8)",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Full Name
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  required={isSignUp}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Jane Doe"
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "8px",
-                    color: "white",
-                    fontSize: "0.9375rem",
-                    outline: "none",
-                    transition: "border-color 0.2s, box-shadow 0.2s",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(139,92,246,0.6)";
-                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(139,92,246,0.15)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
-                />
-              </div>
-            )}
-
             {/* Email */}
             <div style={{ marginBottom: "20px" }}>
               <label
@@ -252,19 +189,27 @@ export default function LoginPage() {
             </div>
 
             {/* Password */}
-            <div style={{ marginBottom: "28px" }}>
-              <label
-                htmlFor="password"
+            <div style={{ marginBottom: "24px" }}>
+              <div
                 style={{
-                  display: "block",
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  color: "rgba(255,255,255,0.8)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                   marginBottom: "8px",
                 }}
               >
-                Password
-              </label>
+                <label
+                  htmlFor="password"
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                    color: "rgba(255,255,255,0.8)",
+                  }}
+                >
+                  Password
+                </label>
+              </div>
+
               <div style={{ position: "relative" }}>
                 <input
                   id="password"
@@ -277,7 +222,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   style={{
                     width: "100%",
-                    padding: "10px 42px 10px 14px",
+                    padding: "10px 40px 10px 14px",
                     background: "rgba(255,255,255,0.05)",
                     border: "1px solid rgba(255,255,255,0.1)",
                     borderRadius: "8px",
@@ -359,44 +304,20 @@ export default function LoginPage() {
               disabled={loading}
             >
               {loading && <Loader2 size={18} className="animate-spin" />}
-              {loading ? "Processing..." : (isSignUp ? "Sign up" : "Sign in")}
+              {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
 
-          {/* Toggle */}
-          <div style={{ marginTop: "24px", textAlign: "center", fontSize: "0.875rem" }}>
-            <span style={{ color: "rgba(255,255,255,0.5)" }}>
-              {isSignUp ? "Already have an account?" : "Don't have an account?"}
-            </span>{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setErrorMsg("");
-                setIsSignUp(!isSignUp);
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                color: "rgb(167,139,250)",
-                fontWeight: 500,
-                cursor: "pointer",
-                padding: 0,
-              }}
-            >
-              {isSignUp ? "Sign in" : "Sign up"}
-            </button>
-          </div>
-
-          {/* Security note */}
+          {/* Security notice */}
           <p
             style={{
-              marginTop: "20px",
+              marginTop: "24px",
               textAlign: "center",
               fontSize: "0.75rem",
-              color: "rgba(255,255,255,0.3)",
+              color: "rgba(255,255,255,0.4)",
             }}
           >
-            🔒 Secure HTTPS connection · Admin access only
+            🔒 Authorized Personnel Only · Managed by Super Admin
           </p>
         </div>
 
