@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
@@ -17,6 +17,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { approveAndQueueAction } from "@/app/actions/queue";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 export interface DraftItem {
   id: string;
@@ -52,9 +53,15 @@ export function DraftsClient({ initialDrafts }: { initialDrafts: DraftItem[] }) 
     );
   };
 
+  const { alert: showAlert } = useDialog();
+
   const handleQueueSelected = async () => {
     if (selectedIds.length === 0) {
-      alert("Please select at least one draft to queue.");
+      await showAlert({
+        title: "No Drafts Selected",
+        message: "Please select at least one draft from the table before clicking 'Add to Queue'.",
+        type: "warning",
+      });
       return;
     }
     setIsQueueing(true);

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import {
@@ -19,6 +19,7 @@ import {
 import { generateContentAction } from "@/app/actions/generate";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 const TONE_OPTIONS = [
   { value: "professional", label: "Professional" },
@@ -50,10 +51,16 @@ export default function GenerateContentPage() {
   const [template, setTemplate] = useState("default");
   const [audience, setAudience] = useState("");
 
+  const { alert: showAlert } = useDialog();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic.trim()) {
-      alert("Please enter a topic first.");
+      await showAlert({
+        title: "Topic Required",
+        message: "Please enter a topic or theme before generating content.",
+        type: "warning",
+      });
       return;
     }
     setIsGenerating(true);
@@ -61,7 +68,11 @@ export default function GenerateContentPage() {
     if (result.success) {
       router.push("/drafts");
     } else {
-      alert("Error generating content: " + result.error);
+      await showAlert({
+        title: "Content Generation Error",
+        message: "Error generating content: " + result.error,
+        type: "error",
+      });
       setIsGenerating(false);
     }
   };

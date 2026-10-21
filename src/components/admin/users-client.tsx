@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useTransition, useMemo } from "react";
 import {
@@ -26,6 +26,7 @@ import {
   toggleUserStatusAction,
   deleteUserAction,
 } from "@/app/actions/user-manage";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 export interface UserRow {
   id: string;
@@ -123,10 +124,16 @@ export function UsersClient({ initialUsers }: Props) {
     setCreatePerms(DEFAULT_ROLE_PERMS[role] || []);
   };
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const { confirm: showConfirm, alert: showAlert } = useDialog();
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createEmail.includes("@") || !createName.trim()) {
-      alert("Please provide a valid name and email address.");
+      await showAlert({
+        title: "Validation Notice",
+        message: "Please provide a valid name and email address.",
+        type: "warning",
+      });
       return;
     }
 
@@ -155,7 +162,11 @@ export function UsersClient({ initialUsers }: Props) {
         setIsCreateOpen(false);
         showToast(`User ${createName} created successfully as ${createRole.replace('_', ' ')}.`);
       } else {
-        alert(res.error || "Failed to create user.");
+        await showAlert({
+          title: "User Creation Error",
+          message: res.error || "Failed to create user.",
+          type: "error",
+        });
       }
     });
   };
@@ -192,7 +203,11 @@ export function UsersClient({ initialUsers }: Props) {
         setPermModalUser(null);
         showToast(`Permissions updated successfully for ${permModalUser.name}.`);
       } else {
-        alert(res.error || "Failed to update permissions.");
+        await showAlert({
+          title: "Permission Update Failed",
+          message: res.error || "Failed to update permissions.",
+          type: "error",
+        });
       }
     });
   };
@@ -210,8 +225,16 @@ export function UsersClient({ initialUsers }: Props) {
     });
   };
 
-  const handleDeleteUser = (u: UserRow) => {
-    if (!confirm(`Are you sure you want to remove user "${u.name}" (${u.email})?`)) return;
+  const handleDeleteUser = async (u: UserRow) => {
+    const ok = await showConfirm({
+      title: "Remove User Account",
+      message: `Are you sure you want to remove user "${u.name}" (${u.email})? This action cannot be undone.`,
+      confirmText: "Yes, Delete User",
+      cancelText: "Cancel",
+      variant: "danger",
+      icon: "trash",
+    });
+    if (!ok) return;
 
     startTransition(async () => {
       const res = await deleteUserAction(u.id);
@@ -219,7 +242,11 @@ export function UsersClient({ initialUsers }: Props) {
         setUsersList((prev) => prev.filter((item) => item.id !== u.id));
         showToast(`User ${u.name} has been removed.`);
       } else {
-        alert(res.error || "Could not delete user.");
+        await showAlert({
+          title: "Could Not Delete User",
+          message: res.error || "Could not delete user account.",
+          type: "error",
+        });
       }
     });
   };

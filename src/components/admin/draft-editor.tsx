@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useTransition } from "react";
 import {
@@ -16,6 +16,7 @@ import {
 import { updateDraftContentAction, archiveDraftAction } from "@/app/actions/draft-detail";
 import { approveAndQueueAction } from "@/app/actions/queue";
 import { useRouter } from "next/navigation";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 interface DraftEditorProps {
   itemId: string;
@@ -66,6 +67,8 @@ export function DraftEditor({
     frontImage = "/drafts/megaphone.jpg";
   }
 
+  const { confirm: showConfirm, alert: showAlert } = useDialog();
+
   const handleSave = () => {
     setSaveSuccess(false);
     startSaveTransition(async () => {
@@ -80,7 +83,11 @@ export function DraftEditor({
         setTimeout(() => setSaveSuccess(false), 3000);
         router.refresh();
       } else {
-        alert("Failed to save changes: " + res.error);
+        await showAlert({
+          title: "Save Failed",
+          message: "Failed to save changes: " + res.error,
+          type: "error",
+        });
       }
     });
   };
@@ -97,13 +104,26 @@ export function DraftEditor({
       if (res.success) {
         router.push("/queue");
       } else {
-        alert("Approve & Queue failed: " + res.error);
+        await showAlert({
+          title: "Approve & Queue Failed",
+          message: "Approve & Queue failed: " + res.error,
+          type: "error",
+        });
       }
     });
   };
 
-  const handleArchive = () => {
-    if (!confirm("Are you sure you want to archive this draft?")) return;
+  const handleArchive = async () => {
+    const ok = await showConfirm({
+      title: "Archive Draft",
+      message: "Are you sure you want to archive this draft? It will be moved out of your active drafts list.",
+      confirmText: "Yes, Archive Draft",
+      cancelText: "Cancel",
+      variant: "warning",
+      icon: "warning",
+    });
+    if (!ok) return;
+
     startArchiveTransition(async () => {
       await archiveDraftAction(itemId);
       router.push("/drafts");

@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useState, useTransition } from "react";
 import { Trash2, Eye, Play, Pause, Loader2 } from "lucide-react";
 import { removeQueueItemAction, toggleQueuePauseAction } from "@/app/actions/queue-manage";
 import { useRouter } from "next/navigation";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 interface Props {
   itemId: string;
@@ -14,13 +15,27 @@ interface Props {
 export function QueueRowActions({ itemId, status, draftId }: Props) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { confirm: showConfirm, alert: showAlert } = useDialog();
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
     if (itemId.startsWith("showcase-")) {
-      alert("This is a preview showcase item. Generate and approve your own drafts to manage live queue items.");
+      await showAlert({
+        title: "Showcase Item",
+        message: "This is a preview showcase item. Generate and approve your own drafts to manage live queue items.",
+        type: "info",
+      });
       return;
     }
-    if (!confirm("Remove this post from the queue? The draft will be kept.")) return;
+    const ok = await showConfirm({
+      title: "Remove from Queue",
+      message: "Remove this post from the queue? The draft will be safely kept in your Draft Library.",
+      confirmText: "Yes, Remove Post",
+      cancelText: "Keep in Queue",
+      variant: "danger",
+      icon: "trash",
+    });
+    if (!ok) return;
+
     startTransition(async () => {
       await removeQueueItemAction(itemId);
       router.refresh();
