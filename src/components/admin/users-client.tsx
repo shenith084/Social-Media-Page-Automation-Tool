@@ -574,41 +574,7 @@ export function UsersClient({ initialUsers }: Props) {
         </div>
       </div>
 
-      {/* Security Rule Banner */}
-      <div
-        style={{
-          marginTop: "20px",
-          background: "#FFFBEB",
-          borderRadius: "14px",
-          border: "1px solid #FEF3C7",
-          padding: "16px 20px",
-          display: "flex",
-          gap: "14px",
-          alignItems: "flex-start",
-        }}
-      >
-        <Shield size={20} style={{ color: "#D97706", flexShrink: 0, marginTop: "2px" }} />
-        <div style={{ fontSize: "0.8125rem", color: "#78350F", lineHeight: 1.5 }}>
-          <strong style={{ color: "#92400E" }}>Super Admin Governance (Section 9):</strong> Super
-          Administrators can create system administrators, editors, and auditors. Permission checkboxes
-          directly update the <code>user_permission_grants</code> database table. Content approval into
-          the publishing queue is strictly enforced on the server by the{" "}
-          <code
-            style={{
-              background: "#FEF3C7",
-              color: "#92400E",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              border: "1px solid #FDE68A",
-            }}
-          >
-            queue.approve
-          </code>{" "}
-          permission gate.
-        </div>
-      </div>
+
 
       {/* CREATE NEW USER MODAL (SYMMETRIC & PROFESSIONAL) */}
       {isCreateOpen && (

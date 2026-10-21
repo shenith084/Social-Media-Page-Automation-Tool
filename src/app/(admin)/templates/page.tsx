@@ -1,4 +1,4 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 import { Palette, Bot, Sliders, CheckCircle2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { templates, aiSettings } from "@/lib/db/schema";
@@ -209,7 +209,7 @@ export default async function TemplatesPage() {
           </h2>
         </div>
         <p style={{ color: "#64748B", fontSize: "0.875rem", margin: "0 0 20px" }}>
-          Limits configured in accordance with the Free-Tier Technology Policy (Section 2).
+          Configured system guardrails and resource allocation limits.
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
