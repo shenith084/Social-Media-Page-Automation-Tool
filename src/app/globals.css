@@ -285,8 +285,8 @@
 /* Standard page padding container */
 .admin-page-container {
   padding: 26px 36px 40px;
-  max-width: 1280px;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
 }
 

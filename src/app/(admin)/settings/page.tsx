@@ -62,7 +62,7 @@ export default async function SettingsPage() {
     const { activePage, connection, pSetting, schedule, latestTestPost } = data;
 
     return (
-      <div style={{ padding: "26px 36px 40px", maxWidth: "980px" }}>
+      <div className="admin-page-container">
         {/* Top Header Row */}
         <div style={{
           display: "flex",
