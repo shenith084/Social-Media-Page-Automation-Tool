@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+import { Suspense } from "react";
+import { RouteProgressBar } from "@/components/ui/route-progress-bar";
+
 export default function RootLayout({
   children,
 }: {
@@ -25,6 +28,9 @@ export default function RootLayout({
         <meta name="robots" content="noindex, nofollow" />
       </head>
       <body className="bg-gray-950 text-white antialiased">
+        <Suspense fallback={null}>
+          <RouteProgressBar />
+        </Suspense>
         {children}
         <Toaster
           position="bottom-right"

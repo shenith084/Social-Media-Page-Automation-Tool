@@ -20,6 +20,8 @@ import { generateContentAction } from "@/app/actions/generate";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { useDialog } from "@/components/ui/dialog-provider";
+import { GenerationLoadingModal } from "@/components/admin/generation-loading-modal";
+import { startRouteProgress } from "@/components/ui/route-progress-bar";
 
 const TONE_OPTIONS = [
   { value: "professional", label: "Professional" },
@@ -43,6 +45,9 @@ export default function GenerateContentPage() {
   const user = session?.user;
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+
   const [topic, setTopic] = useState("");
   const [instructions, setInstructions] = useState("");
   const [postCount, setPostCount] = useState(1);
@@ -64,16 +69,18 @@ export default function GenerateContentPage() {
       return;
     }
     setIsGenerating(true);
+    setIsSuccess(false);
+    setGenError(null);
+
     const result = await generateContentAction(topic, instructions, postCount, tone, audience, referenceText);
     if (result.success) {
-      router.push("/drafts");
+      setIsSuccess(true);
+      setTimeout(() => {
+        startRouteProgress();
+        router.push("/drafts");
+      }, 950);
     } else {
-      await showAlert({
-        title: "Content Generation Error",
-        message: "Error generating content: " + result.error,
-        type: "error",
-      });
-      setIsGenerating(false);
+      setGenError(result.error || "Failed to generate content. Please try again.");
     }
   };
 
@@ -534,6 +541,21 @@ export default function GenerateContentPage() {
           </div>
         </form>
       </div>
+
+      {/* Interactive AI Generation Pipeline Loading Modal */}
+      <GenerationLoadingModal
+        isOpen={isGenerating}
+        topic={topic}
+        tone={tone}
+        audience={audience}
+        postCount={postCount}
+        isSuccess={isSuccess}
+        error={genError}
+        onClose={() => {
+          setIsGenerating(false);
+          setGenError(null);
+        }}
+      />
     </div>
   );
 }

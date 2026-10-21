@@ -43,41 +43,43 @@ export async function generateContentAction(
 
     requestId = requestRecord.id;
 
-    // 1. Attempt n8n Webhook Workflow Execution
+    // 1. Attempt n8n Webhook Workflow Execution ONLY if explicitly configured
     let n8nSuccess = false;
-    try {
-      const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || "http://localhost:5678/webhook/generate";
-      const n8nRes = await fetch(n8nWebhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestId: requestRecord.id,
-          topic,
-          instructions,
-          postCount: postCount || 1,
-          tone,
-          audience,
-          referenceText,
-        }),
-        signal: AbortSignal.timeout(15000),
-      });
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
+    if (n8nWebhookUrl && n8nWebhookUrl.trim() !== "") {
+      try {
+        const n8nRes = await fetch(n8nWebhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            requestId: requestRecord.id,
+            topic,
+            instructions,
+            postCount: postCount || 1,
+            tone,
+            audience,
+            referenceText,
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
 
-      if (n8nRes.ok) {
-        // Poll DB for callback completion
-        const startTime = Date.now();
-        while (Date.now() - startTime < 12000) {
-          await new Promise((r) => setTimeout(r, 1000));
-          const check = await db.query.generationRequests.findFirst({
-            where: eq(generationRequests.id, requestRecord.id),
-          });
-          if (check && check.status === "ready") {
-            n8nSuccess = true;
-            break;
+        if (n8nRes.ok) {
+          // Poll DB for callback completion
+          const startTime = Date.now();
+          while (Date.now() - startTime < 12000) {
+            await new Promise((r) => setTimeout(r, 1000));
+            const check = await db.query.generationRequests.findFirst({
+              where: eq(generationRequests.id, requestRecord.id),
+            });
+            if (check && check.status === "ready") {
+              n8nSuccess = true;
+              break;
+            }
           }
         }
+      } catch (n8nErr) {
+        console.warn("n8n webhook dispatch failed, falling back to direct AI:", n8nErr);
       }
-    } catch (n8nErr) {
-      console.warn("n8n webhook dispatch failed, falling back to direct AI:", n8nErr);
     }
 
     // 2. Direct Gemini Fallback if n8n did not complete
@@ -87,8 +89,8 @@ export async function generateContentAction(
         throw new Error("GEMINI_API_KEY is not configured.");
       }
 
-      const primaryModel = process.env.TEXT_AI_MODEL || "gemini-3-flash-preview";
-      const modelsToTry = [primaryModel, "gemini-3.5-flash-lite", "gemini-3-flash-preview", "gemini-3.5-flash"];
+      const primaryModel = process.env.TEXT_AI_MODEL || "gemini-2.5-flash";
+      const modelsToTry = [primaryModel, "gemini-2.5-flash", "gemini-3.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
       const uniqueModels = Array.from(new Set(modelsToTry));
 
       const prompt = `You are a social media copywriter writing in British English.

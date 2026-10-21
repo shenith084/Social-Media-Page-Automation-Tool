@@ -24,6 +24,7 @@ const client: postgres.Sql =
     connect_timeout: 30,
     max_lifetime: 60 * 5,
     prepare: false,
+    ssl: "require",
   });
 
 if (process.env.NODE_ENV !== "production") {
