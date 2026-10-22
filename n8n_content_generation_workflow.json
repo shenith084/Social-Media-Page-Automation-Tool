@@ -21,7 +21,7 @@
                   {
                       "parameters":  {
                                          "method":  "POST",
-                                         "url":  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
+                                         "url":  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
                                          "sendQuery":  true,
                                          "queryParameters":  {
                                                                  "parameters":  [
