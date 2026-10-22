@@ -1,10 +1,10 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 import { db } from "@/lib/db";
 import { generationItems, generationRequests } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { DraftsClient, DraftItem } from "@/components/admin/drafts-client";
 
-export const metadata: Metadata = { title: "Draft Library | Pixzora Social" };
+export const metadata: Metadata = { title: "Draft Library | AutoSocial" };
 export const dynamic = "force-dynamic";
 
 function formatRelative(iso: string) {

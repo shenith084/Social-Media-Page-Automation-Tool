@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
             }}
           >
             <span style={{ fontSize: "30px", fontWeight: "bold", letterSpacing: "2px", color: "#38bdf8" }}>
-              PIXZORA
+              AUTOSOCIAL
             </span>
           </div>
 

@@ -6,7 +6,7 @@ import { usageRecords, auditLogs, users } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { getCurrentUserSession } from "@/lib/rbac-server";
 
-export const metadata: Metadata = { title: "Usage & Audit | Pixzora Social" };
+export const metadata: Metadata = { title: "Usage & Audit | AutoSocial" };
 export const dynamic = "force-dynamic";
 
 export default async function UsagePage() {

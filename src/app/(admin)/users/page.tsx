@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { UsersClient, UserRow } from "@/components/admin/users-client";
 import { getCurrentUserSession } from "@/lib/rbac-server";
 
-export const metadata: Metadata = { title: "Users & Permissions | Pixzora Social" };
+export const metadata: Metadata = { title: "Users & Permissions | AutoSocial" };
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
@@ -74,7 +74,7 @@ export default async function UsersPage() {
       {
         id: "usr-admin-1",
         name: "Administrator",
-        email: "admin@pixzora.com",
+        email: "admin@autosocial.com",
         isActive: true,
         passwordHash: "hash",
         mustChangePassword: false,

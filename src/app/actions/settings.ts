@@ -191,7 +191,7 @@ export async function runTestPostProofAction(pageId: string) {
     const testResult = await publisher.publishImagePost({
       pageId: page.platformPageId,
       accessToken: process.env.FACEBOOK_PAGE_ACCESS_TOKEN || "",
-      caption: `[Setup Proof] Pixzora Automation test post at ${new Date().toISOString()}`,
+      caption: `[Setup Proof] AutoSocial test post at ${new Date().toISOString()}`,
       imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1080&q=80",
       idempotencyKey: `test-${crypto.randomUUID()}`,
     });
@@ -200,7 +200,7 @@ export async function runTestPostProofAction(pageId: string) {
     const [testRecord] = await db.insert(testPosts).values({
       pageId,
       requestedById: userId,
-      caption: `[Setup Proof] Pixzora Automation test post`,
+      caption: `[Setup Proof] AutoSocial test post`,
       status: "confirmed",
       platformPostId: testResult.platformPostId,
       postLink: testResult.postLink,

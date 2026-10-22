@@ -6,13 +6,13 @@ import { usePathname, useSearchParams } from "next/navigation";
 // Global triggers for programmatic navigation
 export function startRouteProgress() {
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("pixzora-route-start"));
+    window.dispatchEvent(new CustomEvent("autosocial-route-start"));
   }
 }
 
 export function finishRouteProgress() {
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("pixzora-route-finish"));
+    window.dispatchEvent(new CustomEvent("autosocial-route-finish"));
   }
 }
 
@@ -96,13 +96,13 @@ export function RouteProgressBar() {
       start();
     };
 
-    window.addEventListener("pixzora-route-start", handleRouteStart);
-    window.addEventListener("pixzora-route-finish", handleRouteFinish);
+    window.addEventListener("autosocial-route-start", handleRouteStart);
+    window.addEventListener("autosocial-route-finish", handleRouteFinish);
     document.addEventListener("click", handleClick, { capture: true });
 
     return () => {
-      window.removeEventListener("pixzora-route-start", handleRouteStart);
-      window.removeEventListener("pixzora-route-finish", handleRouteFinish);
+      window.removeEventListener("autosocial-route-start", handleRouteStart);
+      window.removeEventListener("autosocial-route-finish", handleRouteFinish);
       document.removeEventListener("click", handleClick, { capture: true });
     };
   }, [pathname]);

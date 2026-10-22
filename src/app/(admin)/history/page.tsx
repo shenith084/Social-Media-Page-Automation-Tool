@@ -1,10 +1,10 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 import { db } from "@/lib/db";
 import { publishedPosts, queueItems, contentVersions } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { HistoryClient, PublishedPostItem } from "@/components/admin/history-client";
 
-export const metadata: Metadata = { title: "Published History | Pixzora Social" };
+export const metadata: Metadata = { title: "Published History | AutoSocial" };
 export const dynamic = "force-dynamic";
 
 function getPostImage(headline: string): string {

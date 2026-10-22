@@ -26,7 +26,7 @@ interface Props {
 }
 
 const MARKETING_TIPS = [
-  "Pixzora AI automatically formats copy and spelling in British English (e.g. specialise, colour).",
+  "AutoSocial AI automatically formats copy and spelling in British English (e.g. specialise, colour).",
   "Posts with 3 to 5 targeted hashtags achieve up to 40% higher organic visibility.",
   "Hook formulas in the first 2 lines determine whether users click 'See More' on social feeds.",
   "Your generated drafts are completely private until approved and scheduled in your queue.",

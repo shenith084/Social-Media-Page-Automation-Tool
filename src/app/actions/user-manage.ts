@@ -64,7 +64,7 @@ export async function createUserAction(data: {
 
     const email = data.email.trim().toLowerCase();
     const name = data.name.trim();
-    const password = data.password && data.password.trim().length > 0 ? data.password.trim() : "Pixzora2026!";
+    const password = data.password && data.password.trim().length > 0 ? data.password.trim() : "AutoSocial2026!";
     const roleName = data.roleName || "admin";
     const isActive = data.isActive !== false;
 

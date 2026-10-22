@@ -1,8 +1,8 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 import { Plus, Clock, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Publishing Queue | Pixzora Social" };
+export const metadata: Metadata = { title: "Publishing Queue | AutoSocial" };
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";

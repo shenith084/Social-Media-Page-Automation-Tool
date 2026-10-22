@@ -727,7 +727,7 @@ export function UsersClient({ initialUsers, currentUserEmail }: Props) {
                     type="email"
                     autoComplete="off"
                     required
-                    placeholder="sarah@pixzora.com"
+                    placeholder="sarah@autosocial.com"
                     value={createEmail}
                     onChange={(e) => setCreateEmail(e.target.value)}
                     style={{ width: "100%", padding: "8px 14px 8px 36px", borderRadius: "9px", border: "1px solid #CBD5E1", fontSize: "0.875rem", color: "#0F172A", outline: "none" }}

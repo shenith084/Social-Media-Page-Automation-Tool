@@ -227,7 +227,7 @@ export function AdminSidebar({ currentUser }: { currentUser?: UserProfile | null
             </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: "0.9375rem", color: "white", lineHeight: 1.2 }}>
-                Pixzora Social
+                AutoSocial
               </div>
               <div style={{ fontSize: "0.6875rem", color: "rgba(255,255,255,0.45)", lineHeight: 1.3 }}>
                 Admin Panel
@@ -422,7 +422,7 @@ export function AdminSidebar({ currentUser }: { currentUser?: UserProfile | null
                     {profile?.name || user?.name || "Shenith Chanidu"}
                   </div>
                   <div style={{ fontSize: "0.6875rem", color: "rgba(255, 255, 255, 0.45)", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {profile?.email || user?.email || "admin@pixzora.com"}
+                    {profile?.email || user?.email || "admin@autosocial.com"}
                   </div>
                   <div style={{ marginTop: "6px", display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(99, 102, 241, 0.2)", border: "1px solid rgba(99, 102, 241, 0.35)", borderRadius: "6px", padding: "2px 6px", fontSize: "0.6875rem", fontWeight: 600, color: "#A5B4FC" }}>
                     <Shield size={11} />
@@ -653,7 +653,7 @@ export function AdminSidebar({ currentUser }: { currentUser?: UserProfile | null
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: "0.875rem", color: "white", lineHeight: 1.1 }}>
-              Pixzora Social
+              AutoSocial
             </div>
             <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.45)" }}>
               Admin Panel

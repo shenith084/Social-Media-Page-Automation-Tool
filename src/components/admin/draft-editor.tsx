@@ -494,7 +494,7 @@ export function DraftEditor({
                     letterSpacing: "0.08em",
                     textTransform: "uppercase",
                   }}>
-                    Pixzora
+                    AutoSocial
                   </div>
                   <div style={{
                     fontSize: "0.6875rem",

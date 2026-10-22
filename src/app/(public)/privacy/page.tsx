@@ -1,8 +1,8 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Pixzora Social Automation",
-  description: "Privacy policy for the Pixzora Social Media Page Automation Tool.",
+  title: "Privacy Policy — AutoSocial Automation",
+  description: "Privacy policy for the AutoSocial Social Media Page Automation Tool.",
   robots: { index: false, follow: false },
 };
 
@@ -11,12 +11,12 @@ export default function PrivacyPolicyPage() {
     <main className="min-h-screen bg-gray-950 text-gray-100 py-16 px-4">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold mb-2 text-white">Privacy Policy</h1>
-        <p className="text-gray-400 text-sm mb-10">Last updated: October 2026 · Pixzora Labs</p>
+        <p className="text-gray-400 text-sm mb-10">Last updated: October 2026 · AutoSocial</p>
 
         <section className="space-y-8 text-gray-300 leading-relaxed">
           <div>
             <h2 className="text-xl font-semibold text-white mb-3">1. Who We Are</h2>
-            <p>Pixzora Labs operates the Social Media Page Automation Tool, a private web admin panel used to generate, schedule and publish content to authorised Facebook Pages. This policy explains what data the Application processes and how it is protected.</p>
+            <p>AutoSocial operates the Social Media Page Automation Tool, a private web admin panel used to generate, schedule and publish content to authorised Facebook Pages. This policy explains what data the Application processes and how it is protected.</p>
           </div>
 
           <div>
@@ -61,7 +61,7 @@ export default function PrivacyPolicyPage() {
 
           <div>
             <h2 className="text-xl font-semibold text-white mb-3">7. Contact</h2>
-            <p>For privacy enquiries or to exercise your data rights, please contact the Pixzora Labs administrator directly or use the <a href="/data-deletion" className="text-blue-400 underline">data deletion page</a>.</p>
+            <p>For privacy enquiries or to exercise your data rights, please contact the AutoSocial administrator directly or use the <a href="/data-deletion" className="text-blue-400 underline">data deletion page</a>.</p>
           </div>
         </section>
       </div>

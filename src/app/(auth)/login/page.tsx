@@ -107,7 +107,7 @@ export default function LoginPage() {
               backgroundClip: "text",
             }}
           >
-            Pixzora Social
+            AutoSocial
           </h1>
           <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem" }}>
             Admin Panel · Sign in to continue

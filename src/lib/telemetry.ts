@@ -25,7 +25,7 @@ export function captureException(error: unknown, context?: ErrorContext) {
   };
 
   // Structured logging
-  console.error("[Pixzora Error]", JSON.stringify(logPayload, null, 2));
+  console.error("[AutoSocial Error]", JSON.stringify(logPayload, null, 2));
 
   // If SENTRY_DSN is configured, send to Sentry HTTP Store endpoint
   const sentryDsn = process.env.SENTRY_DSN;
@@ -40,7 +40,7 @@ export function captureException(error: unknown, context?: ErrorContext) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Sentry-Auth": `Sentry sentry_version=7, sentry_client=pixzora/1.0, sentry_key=${dsnUrl.username}`,
+          "X-Sentry-Auth": `Sentry sentry_version=7, sentry_client=autosocial/1.0, sentry_key=${dsnUrl.username}`,
         },
         body: JSON.stringify({
           event_id: crypto.randomUUID().replace(/-/g, ""),
@@ -61,5 +61,5 @@ export function captureException(error: unknown, context?: ErrorContext) {
 }
 
 export function captureMessage(message: string, context?: ErrorContext) {
-  console.log(`[Pixzora Info] ${message}`, context ? JSON.stringify(context) : "");
+  console.log(`[AutoSocial Info] ${message}`, context ? JSON.stringify(context) : "");
 }

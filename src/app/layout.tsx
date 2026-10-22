@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: {
-    default: "Pixzora Social — Admin Panel",
-    template: "%s | Pixzora Social",
+    default: "AutoSocial — Admin Panel",
+    template: "%s | AutoSocial",
   },
   description: "Social media page automation and publishing management",
   robots: { index: false, follow: false },

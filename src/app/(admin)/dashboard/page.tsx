@@ -1,4 +1,4 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 import {
   ListOrdered,
   CheckCircle2,
@@ -20,7 +20,7 @@ import { desc, asc, eq, sql, gt } from "drizzle-orm";
 import { format, formatDistanceToNow } from "date-fns";
 import { ManualDispatchButton } from "@/components/admin/dispatch-button";
 
-export const metadata: Metadata = { title: "Dashboard | Pixzora Social" };
+export const metadata: Metadata = { title: "Dashboard | AutoSocial" };
 export const dynamic = "force-dynamic";
 
 const statusBadgeMap: Record<string, string> = {
