@@ -27,7 +27,7 @@ export default function RootLayout({
       <head>
         <meta name="robots" content="noindex, nofollow" />
       </head>
-      <body className="bg-gray-950 text-white antialiased">
+      <body className="bg-gray-950 text-white antialiased" suppressHydrationWarning>
         <Suspense fallback={null}>
           <RouteProgressBar />
         </Suspense>
