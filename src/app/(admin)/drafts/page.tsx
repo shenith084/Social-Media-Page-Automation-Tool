@@ -98,21 +98,23 @@ export default async function DraftLibraryPage() {
       };
     });
 
-  // Combine uniquely by ID (ensuring all posts display their live post image)
+  // Combine uniquely by ID: newest database items FIRST at the top, then fallback seed items
   const idSet = new Set<string>();
   const combined: DraftItem[] = [];
 
-  for (const item of initialItems) {
+  // 1. Add database items (already ordered desc(createdAt) -> newest is index 0)
+  for (const item of mappedDbItems) {
     if (!idSet.has(item.id)) {
       idSet.add(item.id);
       combined.push(item);
     }
   }
 
-  for (const item of mappedDbItems) {
+  // 2. Append fallback initial items that are not already present
+  for (const item of initialItems) {
     if (!idSet.has(item.id)) {
       idSet.add(item.id);
-      combined.unshift(item); // Newly generated posts appear at top!
+      combined.push(item);
     }
   }
 
