@@ -1,4 +1,4 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 import Link from "next/link";
 import { Calendar as CalendarIcon, Clock, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { db } from "@/lib/db";
@@ -272,10 +272,11 @@ export default async function CalendarPage() {
                           border: "1px solid #E2E8F0",
                           borderRadius: "12px",
                           gap: "16px",
+                          flexWrap: "wrap",
                           transition: "border-color 0.15s ease",
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: "1 1 240px", minWidth: 0 }}>
                           <div
                             style={{
                               display: "flex",
@@ -288,6 +289,7 @@ export default async function CalendarPage() {
                               fontSize: "0.8125rem",
                               fontWeight: 700,
                               whiteSpace: "nowrap",
+                              flexShrink: 0,
                             }}
                           >
                             <Clock size={13} color="#6366F1" />
@@ -295,13 +297,17 @@ export default async function CalendarPage() {
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div
+                              title={item.headline}
                               style={{
                                 fontWeight: 600,
                                 fontSize: "0.9375rem",
                                 color: "#0F172A",
+                                lineHeight: 1.35,
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
                                 overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
+                                wordBreak: "break-word",
                               }}
                             >
                               {item.headline}
@@ -312,7 +318,7 @@ export default async function CalendarPage() {
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
                           <span
                             style={{
                               background: statusObj.bg,
